@@ -1,0 +1,2 @@
+<div class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Waktu</th><th>Pengguna</th><th>Tindakan</th><th>Entitas</th><th>Keterangan</th></tr></thead><tbody><?php foreach($rows as $r):?><tr><td><?=e($r['created_at'])?></td><td><?=e($r['user_name']??'Sistem')?></td><td><span class="badge"><?=e($r['action'])?></span></td><td><?=e($r['entity_type'])?> #<?=e($r['entity_id'])?></td><td><?=e($r['detail'])?></td></tr><?php endforeach;?></tbody></table></div></div>
+
