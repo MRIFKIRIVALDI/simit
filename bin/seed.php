@@ -4,12 +4,12 @@ use Simit\Core\Database;
 $pdo=Database::connection();
 $pdo->beginTransaction();
 try {
-    foreach (['Lab Komputer','Lab 1','Lab 2','Ruang Staff','Resepsionis','Ruang GTTC Kampus','Ruang Tamu'] as $name) $pdo->prepare('INSERT OR IGNORE INTO locations(name) VALUES(?)')->execute([$name]);
+    foreach (['Lab 1','Lab 2','Ruang Staff','Resepsionis','Ruang GTTC Kampus','Ruang Tamu'] as $name) $pdo->prepare('INSERT OR IGNORE INTO locations(name) VALUES(?)')->execute([$name]);
     foreach (['Komputer','Jaringan','Perlengkapan','Multimedia','Kelistrikan'] as $name) $pdo->prepare('INSERT OR IGNORE INTO asset_categories(name) VALUES(?)')->execute([$name]);
     $adminPass = getenv('SIMIT_ADMIN_PASSWORD') ?: 'Simit!2026Demo';
     $pdo->prepare('INSERT OR IGNORE INTO users(name,email,password_hash,role) VALUES(?,?,?,?)')->execute(['Koordinator IT','admin@simit.local',password_hash($adminPass,PASSWORD_DEFAULT),'admin']);
     $admin=(int)$pdo->query("SELECT id FROM users WHERE email='admin@simit.local'")->fetchColumn();
-    $loc=(int)$pdo->query("SELECT id FROM locations WHERE name='Lab Komputer'")->fetchColumn();
+    $loc=(int)$pdo->query("SELECT id FROM locations WHERE name='Lab 1'")->fetchColumn();
     $cat=(int)$pdo->query("SELECT id FROM asset_categories WHERE name='Komputer'")->fetchColumn();
     for($i=1;$i<=24;$i++){
         $code='PC-'.str_pad((string)$i,3,'0',STR_PAD_LEFT); $pc='LAB-PC-'.str_pad((string)$i,2,'0',STR_PAD_LEFT);

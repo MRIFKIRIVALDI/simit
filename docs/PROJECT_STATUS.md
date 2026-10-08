@@ -1,6 +1,6 @@
 # Status Pengembangan SIMIT
 
-Dokumen ini adalah handoff utama untuk pengembang yang melanjutkan SIMIT. Terakhir diperbarui 6 Oktober 2026.
+Dokumen ini adalah handoff utama untuk pengembang yang melanjutkan SIMIT. Terakhir diperbarui 7 Oktober 2026.
 
 ## 1. Ringkasan
 
@@ -19,48 +19,64 @@ Database aplikasi menjadi sumber operasional. Spreadsheet hanya menjadi referens
 | Area | Status | Catatan |
 | --- | --- | --- |
 | Login | Selesai | Tidak ada registrasi publik. Session memakai cookie HttpOnly dan SameSite Lax. |
-| Hak akses | Sebagian selesai | Admin/koordinator dapat mengubah data. Pemeriksaan policy per modul masih perlu diperdalam. |
+| Landing page publik | Selesai | Portfolio tanpa login berisi mockup dashboard, fitur, workflow, role, dan CTA login dengan glassmorphism/3D. |
+| Hak akses | Selesai untuk MVP | Hanya ada Admin dan User. Admin mengelola master, akun, dan ACC; User mengambil serta mengerjakan tugas. |
 | Pengelolaan akun | Selesai untuk MVP | Admin dapat membuat, mengubah, mengaktifkan, dan menonaktifkan akun. Admin tidak dapat menonaktifkan diri sendiri. |
-| Profil pengguna | Selesai | Nama, email, telepon, bio, dan kata sandi dapat diperbarui. |
+| Profil pengguna | Selesai | Nama, email, ID pegawai, telepon, jabatan, divisi, tanggal lahir, alamat, bio, foto, dan kata sandi dapat diperbarui. |
 | Dashboard | Selesai untuk MVP | Kartu ringkasan, tugas prioritas, dan perangkat perlu perhatian. Baris dashboard dapat diklik dan digunakan dengan keyboard. |
-| Inventaris PC | Selesai untuk MVP | CRUD aset PC dan detail teknis dasar. |
-| Perangkat lain | Selesai untuk MVP | CRUD perangkat kelompok/individual dasar. |
-| Software | Selesai untuk MVP | CRUD master software. Instalasi per-PC belum memiliki antarmuka lengkap. |
+| Inventaris PC | Selesai untuk MVP | Admin dan User dapat menambah/mengubah aset PC; penghapusan khusus Admin. |
+| Perangkat lain | Selesai untuk MVP | Admin dan User dapat menambah/mengubah perangkat; penghapusan khusus Admin. |
+| Software | Selesai untuk MVP | Admin dan User dapat menambah/mengubah software; penghapusan khusus Admin. Instalasi per-PC belum lengkap. |
 | Tugas IT | Selesai untuk MVP | CRUD, ambil tugas secara bersyarat, hasil teks, lampiran, dan status Menunggu Verifikasi. |
+| Tugas tanpa PIC | Selesai | Terlihat untuk Admin dan User; pengumpulan pertama mengklaim tugas secara atomik dan menutup pengerjaan oleh akun lain. |
 | Lampiran hasil | Selesai | JPG/PNG/PDF, maksimum 10 MB, disimpan di `storage/uploads`. |
-| Pemeriksaan | Selesai untuk MVP | CRUD pemeriksaan dasar. Checklist rinci belum tersedia. |
-| Kegiatan | Selesai untuk MVP | CRUD kegiatan dan status kesiapan dasar. |
-| Laporan | Selesai untuk MVP | Ringkasan inventaris per lokasi dan cetak halaman. |
+| ACC tugas | Selesai untuk MVP | Pengumpulan user masuk antrean admin; admin dapat setujui atau kembalikan untuk revisi. |
+| Pemeriksaan | Dinonaktifkan | Tidak tampil pada user; digantikan ACC Tugas pada admin. Tabel lama dipertahankan untuk kompatibilitas data. |
+| Kegiatan | Dinonaktifkan | Dihapus dari menu dan routing aktif. Tabel lama belum dihapus agar migration tetap aman. |
+| Laporan | Diperluas | Inventaris, tugas, software, pengguna, riwayat selesai, satu kolom tanda tangan kosong, dan watermark logo per halaman cetak. |
+| Interaksi tabel tugas | Selesai | Seluruh baris dapat diklik; kolom Aksi hanya untuk tindakan seperti Ambil/Ubah/Hapus. |
 | Audit | Selesai untuk MVP | Login dan perubahan penting dicatat. |
 | Bahasa Inggris | Sebagian selesai | Navigasi, akun, profil, hasil tugas, dan sejumlah kontrol telah diterjemahkan. Sebagian teks lama masih Bahasa Indonesia. |
 | Dark mode | Selesai | Preferensi disimpan di `localStorage`; ikon bulan/matahari mengikuti mode. |
 | Logo kontras | Selesai | Logo hijau pada permukaan terang dan logo putih pada panel hijau/dark mode. |
 | Import spreadsheet | Belum | Struktur tracking import tersedia, tetapi UI parser/pratinjau belum dibuat. |
 | Ekspor | Belum | Laporan hanya dapat dicetak dari browser. |
-| Verifikasi tugas | Sebagian | Pengajuan hasil mengubah status, tetapi aksi terima/tolak koordinator belum lengkap. |
-| Notifikasi | Belum | Tabel tersedia, antarmuka dan generator pengingat belum dibuat. |
+| Verifikasi tugas | Selesai untuk MVP | Tugas pending tersembunyi dari daftar utama, masuk ACC admin, lalu kembali sebagai history setelah disetujui. |
+| Notifikasi | Selesai untuk MVP | Bell menampilkan unread; kartu dapat diklik menuju chat, detail tugas, atau antrean ACC dan otomatis ditandai dibaca. |
+| Chat internal | Selesai untuk MVP | Pesan langsung antar akun aktif, daftar percakapan, dan indikator unread. Saat ini memakai refresh halaman, belum WebSocket. |
 | Backup/restore | Belum | Perlu prosedur dan pengujian sebelum produksi. |
 
 ## 3. Alur yang sudah berjalan
 
 ### Login dan akun
 
-1. Admin membuat akun melalui menu **Akun**.
-2. Pengguna masuk menggunakan email dan kata sandi.
-3. Tidak ada endpoint atau tombol pendaftaran publik.
-4. Admin dapat memilih peran: admin, koordinator, staf, PKL/intern, atau viewer.
-5. Akun dapat dinonaktifkan tanpa menghapus riwayat.
+1. Pengunjung tanpa session membuka `/` untuk melihat landing page publik.
+2. Tombol CTA mengarah ke `/login`; tidak ada data operasional nyata pada landing page.
+3. Admin membuat akun melalui menu **Akun**.
+4. Pengguna masuk menggunakan email dan kata sandi.
+5. Tidak ada endpoint atau tombol pendaftaran publik.
+6. Admin dapat memilih satu dari dua peran: Admin atau User.
+7. Akun dapat dinonaktifkan tanpa menghapus riwayat.
 
 ### Tugas dan hasil pekerjaan
 
-1. Admin/koordinator membuat tugas.
-2. Tugas berstatus `Tersedia` dapat diambil satu pengguna melalui update bersyarat.
-3. PIC membuka **Hasil** dari halaman Tugas atau baris Tugas Prioritas.
-4. PIC menulis hasil dan dapat melampirkan satu JPG, PNG, atau PDF pada setiap pengiriman.
-5. Ketika tugas `Tersedia` atau `Dikerjakan` dikirim, status menjadi `Menunggu Verifikasi`.
-6. Lampiran diunduh melalui endpoint aplikasi, bukan URL publik langsung.
+1. Admin membuat tugas dengan PIC tertentu atau membiarkan PIC kosong sebagai tugas bersama.
+2. Tugas tanpa PIC dapat dibuka Admin dan User. Tugas dengan PIC hanya dikerjakan PIC tersebut atau Admin.
+3. PIC atau pengambil pertama menulis hasil dan dapat melampirkan satu JPG, PNG, atau PDF pada setiap pengiriman.
+4. Pengumpulan tugas tanpa PIC memakai update bersyarat atomik: pengirim pertama menjadi PIC, pengumpulan berikutnya ditolak.
+5. Status menjadi `Menunggu Verifikasi`, tugas hilang dari daftar aktif semua akun, dan admin menerima notifikasi ACC.
+6. Setelah ACC, akun pelaksana menerima notifikasi dan tugas kembali sebagai riwayat `Selesai`; revisi kembali ke PIC sebagai `Dikerjakan`.
+7. Lampiran diunduh melalui endpoint aplikasi, bukan URL publik langsung.
 
-Catatan: koordinator belum memiliki tombol khusus Terima/Tolak hasil. Ini adalah prioritas lanjutan.
+### Notifikasi dan chat
+
+1. Ikon lonceng membuka pusat notifikasi dan menampilkan jumlah notifikasi belum dibaca.
+2. Tombol **Tandai semua dibaca** mengisi waktu baca seluruh notifikasi akun tersebut.
+3. Menu **Chat** menampilkan semua akun aktif selain akun sendiri.
+4. Pesan hanya dapat dikirim ke akun aktif. Membuka percakapan menandai pesan masuk dari kontak itu sebagai dibaca.
+5. Pesan baru juga membuat notifikasi bagi penerima. Chat saat ini berbasis request/response dan perlu reload untuk pesan terbaru.
+
+Tugas yang sedang menunggu ACC tidak ditampilkan pada daftar Tugas. Setelah disetujui, tugas kembali ke daftar sebagai riwayat berstatus Selesai. Jika ditolak, tugas kembali ke User sebagai Dikerjakan dengan catatan revisi.
 
 ## 4. Data awal
 
@@ -94,8 +110,9 @@ Data spreadsheet yang mengandung email/kata sandi tidak disalin ke database. Beb
 - Batas lampiran 10 MB.
 - Nama file penyimpanan dibuat acak; nama asli hanya menjadi metadata.
 - Folder upload berada di luar document root.
+- Foto profil divalidasi lewat MIME dan pemeriksaan gambar, dibatasi 2 MB, diberi nama acak, dan dilayani melalui endpoint terautentikasi.
 - Admin tidak dapat menonaktifkan akun sendiri.
-- Hasil tugas hanya dapat diisi PIC atau admin/koordinator.
+- Hasil tugas hanya dapat diisi PIC atau admin.
 
 ## 7. Keterbatasan penting
 
@@ -105,6 +122,7 @@ Data spreadsheet yang mengandung email/kata sandi tidak disalin ke database. Beb
 - Lampiran bisa diunduh semua pengguna yang sudah login. Policy akses per tugas perlu diperketat bila ada data sensitif.
 - Belum ada rate limiting login, reset kata sandi, MFA, atau pemaksaan ganti password awal.
 - Belum ada pagination; daftar besar perlu pagination server-side.
+- Chat belum real-time (WebSocket/SSE), belum memiliki lampiran, edit, hapus, atau percakapan grup.
 - Terjemahan belum mencakup seluruh teks lama dan nilai status database.
 - Belum ada penghapusan lampiran, antivirus scanning, thumbnail, atau multi-file sekali kirim.
 - Belum ada pengujian otomatis untuk seluruh acceptance criteria PRD.
@@ -112,14 +130,14 @@ Data spreadsheet yang mengandung email/kata sandi tidak disalin ke database. Beb
 
 ## 8. Prioritas pengembangan berikutnya
 
-1. Implementasikan verifikasi hasil tugas: Terima, Tolak/Revisi, catatan revisi, dan riwayat status.
-2. Pecah front controller menjadi router, controller, service, repository, dan policy.
+1. Pecah front controller menjadi router, controller, service, repository, dan policy.
+2. Tambahkan tampilan riwayat status dan catatan revisi yang lebih rinci pada detail tugas.
 3. Lengkapi instalasi software per PC serta kebutuhan software kegiatan.
 4. Buat importer XLSX dengan pratinjau, sanitasi kredensial, validasi, dan idempotensi.
 5. Lengkapi terjemahan Inggris melalui katalog terpusat.
 6. Tambahkan pagination, filter status/lokasi/PIC, dan penyimpanan filter.
 7. Tambahkan checklist pemeriksaan dan kesiapan kegiatan.
-8. Implementasikan notifikasi jatuh tempo dan software perlu dihapus.
+8. Tambahkan notifikasi terjadwal untuk jatuh tempo dan software perlu dihapus serta transport real-time untuk chat.
 9. Siapkan migration MySQL/MariaDB serta staging deployment.
 10. Tambahkan integration test untuk acceptance criteria PRD.
 

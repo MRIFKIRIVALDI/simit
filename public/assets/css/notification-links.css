@@ -1,0 +1,1 @@
+.notification-row{align-items:center;border-radius:14px;padding-left:8px;padding-right:8px;transition:background .18s ease,transform .18s ease}.notification-row:hover,.notification-row:focus-visible{background:rgba(37,131,59,.08);transform:translateX(3px);outline:none}.notification-row>div{flex:1}.notification-arrow{font-size:1.3rem;color:var(--green);padding-right:8px}

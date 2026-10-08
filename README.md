@@ -28,7 +28,7 @@ Default menggunakan `storage/database/simit.sqlite`. Untuk MySQL/MariaDB, ubah `
 - Password disimpan menggunakan `password_hash`.
 - Semua query aplikasi menggunakan prepared statement.
 - Formulir memakai token CSRF.
-- Hak ubah/hapus dibatasi untuk admin/koordinator.
+- Hak ubah/hapus master dibatasi untuk admin; user berfokus mengambil dan mengerjakan tugas.
 - Kredensial yang ditemukan dalam spreadsheet sumber tidak disalin ke aplikasi.
 
 ## Dokumentasi pengembang
