@@ -27,7 +27,9 @@ Database aplikasi menjadi sumber operasional. Spreadsheet hanya menjadi referens
 | Inventaris PC | Selesai untuk MVP | Admin dan User dapat menambah/mengubah aset PC; penghapusan khusus Admin. |
 | Perangkat lain | Selesai untuk MVP | Admin dan User dapat menambah/mengubah perangkat; penghapusan khusus Admin. |
 | Software | Selesai untuk MVP | Admin dan User dapat menambah/mengubah software; penghapusan khusus Admin. Instalasi per-PC belum lengkap. |
-| Tugas IT | Selesai untuk MVP | CRUD, ambil tugas secara bersyarat, hasil teks, lampiran, dan status Menunggu Verifikasi. |
+| Tugas IT | Selesai untuk MVP | Admin/User dapat membuat tugas; tugas tanpa PIC dikerjakan bersama melalui kontribusi dan pengajuan final untuk ACC. |
+| Kolaborasi tugas | Selesai untuk MVP | Banyak User dapat menambahkan progres/bantuan dan lampiran pada tugas tanpa PIC; satu pengajuan final mengunci tugas untuk ACC Admin. |
+| UI kolaborasi | Selesai untuk MVP | Kolom kiri/kanan seimbang, teks PIC aman, dan tombol tugas tanpa PIC membuka form kontribusi tanpa mengunci tugas. |
 | Tugas tanpa PIC | Selesai | Terlihat untuk Admin dan User; pengumpulan pertama mengklaim tugas secara atomik dan menutup pengerjaan oleh akun lain. |
 | Lampiran hasil | Selesai | JPG/PNG/PDF, maksimum 10 MB, disimpan di `storage/uploads`. |
 | ACC tugas | Selesai untuk MVP | Pengumpulan user masuk antrean admin; admin dapat setujui atau kembalikan untuk revisi. |
@@ -36,10 +38,11 @@ Database aplikasi menjadi sumber operasional. Spreadsheet hanya menjadi referens
 | Laporan | Diperluas | Inventaris, tugas, software, pengguna, riwayat selesai, satu kolom tanda tangan kosong, dan watermark logo per halaman cetak. |
 | Interaksi tabel tugas | Selesai | Seluruh baris dapat diklik; kolom Aksi hanya untuk tindakan seperti Ambil/Ubah/Hapus. |
 | Audit | Selesai untuk MVP | Login dan perubahan penting dicatat. |
-| Bahasa Inggris | Sebagian selesai | Navigasi, akun, profil, hasil tugas, dan sejumlah kontrol telah diterjemahkan. Sebagian teks lama masih Bahasa Indonesia. |
+| Bahasa Inggris | Diperluas untuk MVP | Dashboard, login, form CRUD, tabel inventaris, status umum, audit, laporan, profil, chat, notifikasi, dan navigasi memiliki terjemahan. Teks domain baru perlu ditambahkan ke katalog `__()` bila muncul. |
 | Dark mode | Selesai | Preferensi disimpan di `localStorage`; ikon bulan/matahari mengikuti mode. |
 | Logo kontras | Selesai | Logo hijau pada permukaan terang dan logo putih pada panel hijau/dark mode. |
 | Import spreadsheet | Belum | Struktur tracking import tersedia, tetapi UI parser/pratinjau belum dibuat. |
+| Adapter MySQL/MariaDB | Belum | Aplikasi aktif masih SQLite; migration MySQL perlu dibuat sebelum deployment kantor. Panduan ada di `docs/DEPLOYMENT_AND_MYSQL.md`. |
 | Ekspor | Belum | Laporan hanya dapat dicetak dari browser. |
 | Verifikasi tugas | Selesai untuk MVP | Tugas pending tersembunyi dari daftar utama, masuk ACC admin, lalu kembali sebagai history setelah disetujui. |
 | Notifikasi | Selesai untuk MVP | Bell menampilkan unread; kartu dapat diklik menuju chat, detail tugas, atau antrean ACC dan otomatis ditandai dibaca. |
@@ -61,12 +64,15 @@ Database aplikasi menjadi sumber operasional. Spreadsheet hanya menjadi referens
 ### Tugas dan hasil pekerjaan
 
 1. Admin membuat tugas dengan PIC tertentu atau membiarkan PIC kosong sebagai tugas bersama.
-2. Tugas tanpa PIC dapat dibuka Admin dan User. Tugas dengan PIC hanya dikerjakan PIC tersebut atau Admin.
-3. PIC atau pengambil pertama menulis hasil dan dapat melampirkan satu JPG, PNG, atau PDF pada setiap pengiriman.
-4. Pengumpulan tugas tanpa PIC memakai update bersyarat atomik: pengirim pertama menjadi PIC, pengumpulan berikutnya ditolak.
-5. Status menjadi `Menunggu Verifikasi`, tugas hilang dari daftar aktif semua akun, dan admin menerima notifikasi ACC.
-6. Setelah ACC, akun pelaksana menerima notifikasi dan tugas kembali sebagai riwayat `Selesai`; revisi kembali ke PIC sebagai `Dikerjakan`.
-7. Lampiran diunduh melalui endpoint aplikasi, bukan URL publik langsung.
+2. User juga dapat membuat tugas; tugas User otomatis dibuat tanpa PIC dan berstatus `Tersedia`.
+3. Tugas tanpa PIC dapat dibuka semua User. Setiap User dapat menambahkan kontribusi progres/bantuan serta lampiran.
+4. Saat salah satu User menandai kontribusi sebagai final, tugas menjadi `Menunggu Verifikasi` dan tidak menerima kontribusi baru.
+5. Admin melihat daftar kontributor dari detail tugas, lalu menyetujui menjadi `Selesai` atau mengembalikan revisi menjadi `Dikerjakan`.
+6. Setelah ACC, hasil akhir dan status selesai terlihat sebagai riwayat untuk semua akun.
+7. Tugas dengan PIC tertentu tetap hanya dapat dikerjakan PIC tersebut atau Admin.
+8. Lampiran diunduh melalui endpoint aplikasi, bukan URL publik langsung.
+
+Kontributor tidak diisi manual. Nama kontributor dibuat otomatis dari akun yang mengirim form **Kontribusi / bantuan**. Lampiran juga tercatat atas nama akun pengunggah. Checkbox **Ajukan sebagai hasil final untuk ACC Admin** hanya dipilih ketika pekerjaan sudah siap diverifikasi.
 
 ### Notifikasi dan chat
 
@@ -122,6 +128,7 @@ Data spreadsheet yang mengandung email/kata sandi tidak disalin ke database. Beb
 - Lampiran bisa diunduh semua pengguna yang sudah login. Policy akses per tugas perlu diperketat bila ada data sensitif.
 - Belum ada rate limiting login, reset kata sandi, MFA, atau pemaksaan ganti password awal.
 - Belum ada pagination; daftar besar perlu pagination server-side.
+- Kontribusi kolaboratif belum memiliki edit/hapus kontribusi setelah dikirim; koreksi dilakukan melalui kontribusi baru atau revisi Admin.
 - Chat belum real-time (WebSocket/SSE), belum memiliki lampiran, edit, hapus, atau percakapan grup.
 - Terjemahan belum mencakup seluruh teks lama dan nilai status database.
 - Belum ada penghapusan lampiran, antivirus scanning, thumbnail, atau multi-file sekali kirim.

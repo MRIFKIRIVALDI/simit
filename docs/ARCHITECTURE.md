@@ -95,6 +95,9 @@ Merender view ke buffer, kemudian memasukkannya ke layout aplikasi.
 - `006_task_notification_trigger.sql`: trigger SQLite yang membuat notifikasi untuk akun aktif ketika tugas baru dibuat.
 - `007_extended_profiles.sql`: data pegawai tambahan serta metadata foto profil.
 - `008_notification_links.sql`: URL tujuan notifikasi dan pembaruan trigger tugas baru.
+- `009_task_collaboration.sql`: kontribusi per User pada tugas tanpa PIC.
+
+Detail deployment SQLite, XAMPP, dan rencana adapter MySQL/MariaDB tersedia di `docs/DEPLOYMENT_AND_MYSQL.md`.
 
 Migration yang sudah diterapkan tidak boleh diedit. Buat file bernomor baru untuk perubahan skema berikutnya.
 
@@ -105,6 +108,7 @@ Migration yang sudah diterapkan tidak boleh diedit. Buat file bernomor baru untu
 - `assets` menjadi induk PC dan perangkat lain.
 - `pc_details` adalah relasi satu-ke-satu terhadap aset PC.
 - `tasks` menyimpan workflow pekerjaan dan hasil teks.
+- `task_contributions` menyimpan progres/bantuan setiap User pada tugas kolaboratif, termasuk penanda pengajuan final.
 - `notifications` menyimpan judul, isi pemberitahuan per pengguna, dan waktu baca.
 - `messages` menyimpan chat langsung pengirim-penerima beserta waktu baca.
 - `attachments` menyimpan metadata file yang terkait langsung ke tugas.
@@ -119,8 +123,10 @@ Migration yang sudah diterapkan tidak boleh diedit. Buat file bernomor baru untu
 - Semua perubahan penting memanggil `Auth::audit()`.
 - Gunakan transaction untuk perubahan lintas tabel atau file+database.
 - Klaim tugas tanpa PIC harus memakai conditional update di dalam transaction; jangan memakai pola baca-lalu-tulis yang membuka race condition.
+- Pengajuan final tugas kolaboratif harus dilakukan dalam transaction bersama insert kontribusi, upload lampiran, perubahan status, dan notifikasi Admin.
 - Jangan menaruh password, token, atau kredensial spreadsheet di source code.
 - Jangan melayani `storage/uploads` sebagai folder statis.
 - Pertahankan Bahasa Indonesia sebagai default dan tambahkan teks Inggris melalui helper `__()`.
+- Untuk teks UI tanpa pasangan Inggris eksplisit, tambahkan pasangan pada katalog internal `__()` di `bootstrap.php`; jangan menerjemahkan teks melalui JavaScript.
 - Pastikan setiap kontrol ikon memiliki label aksesibel.
 

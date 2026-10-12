@@ -1,5 +1,41 @@
 # Changelog
 
+## 2026-10-12 — Penyempurnaan UI tugas kolaboratif
+
+- Kolom detail tugas dan form kontribusi dibuat sama lebar agar tidak saling bertabrakan.
+- Detail PIC menggunakan layout grid yang aman untuk teks panjang.
+- Tugas tanpa PIC tidak lagi terkunci ketika tombol **Ambil** ditekan; tombol langsung membuka halaman kontribusi.
+- Kontributor terisi otomatis setelah User menyimpan kontribusi atau mengunggah lampiran.
+- Layout kontribusi berubah menjadi satu kolom pada layar kecil.
+
+## 2026-10-12 — Tugas kolaboratif dan pembuatan tugas oleh User
+
+- User dapat membuat tugas dari menu Tugas.
+- Tugas baru dari User otomatis berstatus `Tersedia`, tanpa PIC, dan tetap melewati ACC Admin pada saat pengajuan hasil final.
+- Admin tetap dapat memilih satu PIC atau membiarkan PIC kosong saat membuat/mengubah tugas.
+- Tugas tanpa PIC terlihat oleh semua User dan tidak lagi terkunci hanya karena satu User mulai membantu.
+- User dapat menambahkan kontribusi bantuan dan lampiran secara terpisah pada tugas yang sama.
+- Satu User dapat menandai kontribusinya sebagai pengajuan final; tugas masuk `Menunggu Verifikasi` dan hasilnya tersinkron untuk semua pihak setelah ACC.
+- Menambahkan migration `009_task_collaboration.sql` dan halaman kontribusi kolaboratif.
+
+## 2026-10-12 — Penyempurnaan terjemahan Inggris
+
+- Menambahkan katalog terjemahan UI umum pada helper `__()`.
+- Dashboard kini menerjemahkan ringkasan, statistik, tugas prioritas, status aset, dan pesan kosong.
+- Form CRUD menerjemahkan judul modul, label field, pilihan, tombol, dan placeholder.
+- Tabel inventaris menerjemahkan header kolom serta aksi umum.
+- Halaman login dan audit menerjemahkan konten utama, bukan hanya menu.
+- Status database seperti `Tersedia`, `Dikerjakan`, `Selesai`, `Draft`, dan status software memiliki label Inggris.
+
+## 2026-10-08 — Dokumentasi deployment dan rencana MySQL
+
+- Menambahkan `docs/DEPLOYMENT_AND_MYSQL.md`.
+- Mendokumentasikan database SQLite yang sedang digunakan.
+- Mendokumentasikan perbedaan PHP development server dan XAMPP.
+- Mendokumentasikan langkah rencana migrasi SQLite ke MySQL/MariaDB.
+- Mendokumentasikan backup, staging, cutover, struktur deployment, hosting, dan checklist keamanan kerja.
+- Menandai adapter MySQL/MariaDB sebagai pekerjaan yang belum diimplementasikan.
+
 ## 2026-10-08 — Penyempurnaan laporan cetak
 
 - Judul laporan, judul setiap panel, dan seluruh header kolom tabel dibuat rata tengah.

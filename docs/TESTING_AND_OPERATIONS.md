@@ -50,11 +50,18 @@ Smoke test memastikan tabel inti dan akun seed tersedia. Workflow test memverifi
 - User dapat menambah dan mengubah PC, perangkat lain, serta software, tetapi tidak dapat menghapusnya.
 - Foto profil JPG/PNG/WebP maksimal 2 MB dapat diunggah dan tampil kembali; MIME palsu serta file terlalu besar ditolak.
 - Light/dark mode bertahan setelah reload.
+- Ganti bahasa ke English lalu periksa dashboard, form CRUD, tabel, status, login, audit, dan laporan; isi halaman harus ikut berubah, bukan hanya menu.
 - Ikon bulan muncul di light mode dan matahari muncul di dark mode.
 - Logo putih muncul pada panel hijau/dark; logo hijau muncul pada permukaan terang.
 - Semua kartu ringkasan dan baris Tugas Prioritas dapat diklik.
 - Tugas tersedia hanya berhasil diambil sekali.
 - Tugas tanpa PIC terlihat bagi Admin dan User; pengumpulan pertama menutup pengumpulan akun lain.
+- User dapat membuat tugas baru; Admin tetap menerima pengajuan final untuk ACC.
+- Beberapa User dapat menambahkan kontribusi/lampiran pada tugas tanpa PIC; pengajuan final mengubah status global menjadi Menunggu Verifikasi.
+- Detail tugas menampilkan daftar kontributor untuk pemantauan Admin.
+- Form tugas kolaboratif memiliki kolom kiri/kanan seimbang, tidak bertabrakan pada teks panjang, dan menjadi satu kolom di ponsel.
+- Menekan tombol tugas tanpa PIC tidak menetapkan PIC; halaman kontribusi terbuka dan User lain tetap dapat membantu.
+- Setelah kontribusi disimpan, nama akun pengirim muncul otomatis pada daftar kontributor.
 - Bell menampilkan unread dan halaman notifikasi dapat menandai semua sebagai dibaca.
 - Kartu notifikasi chat, tugas, dan ACC membuka halaman yang sesuai serta menandai notifikasi dibaca.
 - Tugas baru, pengumpulan, hasil ACC/revisi, dan chat baru menghasilkan notifikasi yang tepat.
@@ -77,6 +84,8 @@ Hentikan write sementara atau gunakan mekanisme backup SQLite yang konsisten seb
 ## Deployment
 
 Aplikasi memerlukan PHP 8.2+, PDO, mbstring, dan fileinfo. Document root harus diarahkan ke folder `public`. Folder `storage` harus dapat ditulis oleh proses PHP tetapi tidak boleh diekspos langsung oleh web server.
+
+Untuk penjelasan khusus penggunaan XAMPP, migrasi SQLite ke MySQL/MariaDB, staging, cutover, dan backup produksi, baca `docs/DEPLOYMENT_AND_MYSQL.md`.
 
 Production checklist:
 
