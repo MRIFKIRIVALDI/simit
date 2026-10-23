@@ -1,1 +1,1 @@
-.task-table-row{cursor:pointer}.task-table-row:hover{background:rgba(37,131,59,.08)}.task-table-row:focus{outline:2px solid var(--green);outline-offset:-2px}
+.task-table-row{cursor:pointer}.task-table-row:hover{background:rgba(37,131,59,.08)}.task-table-row:focus{outline:2px solid var(--green);outline-offset:-2px}.inventory-details{margin-top:18px}.inventory-details table{min-width:760px}.inventory-details th,.inventory-details td{white-space:nowrap}.desktop-only{display:block}@media(max-width:760px){.desktop-only{display:none}}

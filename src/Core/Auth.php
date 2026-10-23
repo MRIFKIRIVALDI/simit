@@ -13,9 +13,19 @@ final class Auth
 
     public static function attempt(string $email, string $password): bool
     {
-        $stmt = Database::connection()->prepare('SELECT * FROM users WHERE lower(email)=lower(?) AND is_active=1');
-        $stmt->execute([trim($email)]); $user = $stmt->fetch();
-        if (!$user || !password_verify($password, $user['password_hash'])) return false;
+        $pdo = Database::connection();
+        $email = strtolower(trim($email));
+        $ip = substr((string)($_SERVER['REMOTE_ADDR'] ?? 'cli'), 0, 64);
+        $pdo->exec("DELETE FROM login_attempts WHERE created_at < datetime('now','-1 day')");
+        $limit = $pdo->prepare("SELECT COUNT(*) FROM login_attempts WHERE (ip_address=? OR email=?) AND successful=0 AND created_at >= datetime('now','-15 minutes')");
+        $limit->execute([$ip, $email]);
+        if ((int)$limit->fetchColumn() >= 8) return false;
+        $stmt = $pdo->prepare('SELECT * FROM users WHERE lower(email)=? AND is_active=1');
+        $stmt->execute([$email]); $user = $stmt->fetch();
+        $valid = $user && password_verify($password, $user['password_hash']);
+        $log = $pdo->prepare('INSERT INTO login_attempts(ip_address,email,successful) VALUES(?,?,?)');
+        $log->execute([$ip, $email, $valid ? 1 : 0]);
+        if (!$valid) return false;
         session_regenerate_id(true); $_SESSION['user_id'] = $user['id'];
         self::audit('login', 'users', (int)$user['id'], 'Pengguna masuk');
         return true;

@@ -17,12 +17,21 @@ foreach (is_file(BASE_PATH . '/.env') ? file(BASE_PATH . '/.env', FILE_IGNORE_NE
 }
 
 date_default_timezone_set($_ENV['APP_TIMEZONE'] ?? 'Asia/Jakarta');
+$simitHttps = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') || (string) ($_SERVER['SERVER_PORT'] ?? '') === '443';
+if (PHP_SAPI !== 'cli') {
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header("Permissions-Policy: camera=(), microphone=(), geolocation=()");
+    header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
+    if ($simitHttps) header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
 if (session_status() !== PHP_SESSION_ACTIVE) {
     $sessionPath = BASE_PATH . '/storage/sessions';
     if (!is_dir($sessionPath)) mkdir($sessionPath, 0775, true);
     session_save_path($sessionPath);
     session_name('simit_session');
-    session_start(['cookie_httponly' => true, 'cookie_samesite' => 'Lax', 'use_strict_mode' => true]);
+    session_start(['cookie_httponly' => true, 'cookie_secure' => $simitHttps, 'cookie_samesite' => 'Lax', 'use_strict_mode' => true]);
 }
 
 function env(string $key, mixed $default = null): mixed { return $_ENV[$key] ?? getenv($key) ?: $default; }

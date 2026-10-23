@@ -12,6 +12,8 @@ Sumber kebutuhan utama:
 - `Salinan Pengelolaan_Perangkat_Lab.xlsx` di Google Drive
 - `Salinan Daftar_Tugas.xlsx` di Google Drive
 
+Panduan sistem desain visual tersedia di `DESIGN.md`.
+
 Database aplikasi menjadi sumber operasional. Spreadsheet hanya menjadi referensi dan sumber data awal; belum ada sinkronisasi dua arah.
 
 ## 2. Status fitur
@@ -27,6 +29,7 @@ Database aplikasi menjadi sumber operasional. Spreadsheet hanya menjadi referens
 | Inventaris PC | Selesai untuk MVP | Admin dan User dapat menambah/mengubah aset PC; penghapusan khusus Admin. |
 | Perangkat lain | Selesai untuk MVP | Admin dan User dapat menambah/mengubah perangkat; penghapusan khusus Admin. |
 | Software | Selesai untuk MVP | Admin dan User dapat menambah/mengubah software; penghapusan khusus Admin. Instalasi per-PC belum lengkap. |
+| Tugas otomatis software | Selesai untuk MVP | `Perlu Install` membuat tugas Instal dan `Perlu Dihapus` membuat tugas Hapus dengan nomor TSK berurutan dan status Dikerjakan. |
 | Tugas IT | Selesai untuk MVP | Admin/User dapat membuat tugas; tugas tanpa PIC dikerjakan bersama melalui kontribusi dan pengajuan final untuk ACC. |
 | Kolaborasi tugas | Selesai untuk MVP | Banyak User dapat menambahkan progres/bantuan dan lampiran pada tugas tanpa PIC; satu pengajuan final mengunci tugas untuk ACC Admin. |
 | UI kolaborasi | Selesai untuk MVP | Kolom kiri/kanan seimbang, teks PIC aman, dan tombol tugas tanpa PIC membuka form kontribusi tanpa mengunci tugas. |

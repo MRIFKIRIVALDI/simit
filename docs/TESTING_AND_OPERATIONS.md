@@ -48,6 +48,8 @@ Smoke test memastikan tabel inti dan akun seed tersedia. Workflow test memverifi
 - Admin dapat membuat akun, mengganti peran, dan menonaktifkan akun lain.
 - Pengguna dapat mengubah profil sendiri.
 - User dapat menambah dan mengubah PC, perangkat lain, serta software, tetapi tidak dapat menghapusnya.
+- Menyimpan software dengan status `Perlu Install` atau `Perlu Dihapus` membuat satu tugas aktif sesuai jenisnya, bernomor `TSK-###`, dan berstatus `Dikerjakan`.
+- Halaman Inventaris PC menampilkan detail teknis tambahan pada desktop dan menyederhanakan tampilan pada mobile; halaman Software tidak memakai panel detail PC.
 - Foto profil JPG/PNG/WebP maksimal 2 MB dapat diunggah dan tampil kembali; MIME palsu serta file terlalu besar ditolak.
 - Light/dark mode bertahan setelah reload.
 - Ganti bahasa ke English lalu periksa dashboard, form CRUD, tabel, status, login, audit, dan laporan; isi halaman harus ikut berubah, bukan hanya menu.

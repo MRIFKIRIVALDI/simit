@@ -1,5 +1,32 @@
 # Changelog
 
+## Security hardening — 2026-10-23
+
+- Menutup potensi IDOR pada endpoint unduh lampiran dengan pemeriksaan akses berbasis tugas.
+- Menambahkan pembatasan percobaan login melalui migration `011_security_hardening.sql`.
+- Menambahkan security headers browser dan cookie session Secure otomatis pada HTTPS.
+- Menambahkan aturan Apache untuk menolak akses langsung ke `storage/`.
+- Mendokumentasikan temuan, kontrol, dan catatan deployment di `docs/SECURITY_AUDIT.md`.
+
+## 2026-10-23 — Dokumentasi sistem desain
+
+- Menambahkan `DESIGN.md` sebagai acuan warna, tipografi, komponen, ikon, layout, responsive behavior, landing page, laporan, dan aturan konsistensi UI.
+
+## 2026-10-15 — Fokus detail Inventaris PC
+
+- Panel detail teknis tambahan kini hanya ditampilkan pada halaman Inventaris PC.
+- Halaman Software dan Perangkat Lain tidak lagi menampilkan panel detail PC.
+
+## 2026-10-15 — Tugas otomatis software dan detail inventaris desktop
+
+- Status software `Perlu Install` otomatis membuat tugas `Instal {nama software}`.
+- Status `Perlu Dihapus` otomatis membuat tugas `Hapus {nama software}`.
+- Nomor tugas otomatis mengikuti urutan `TSK-###` berikutnya.
+- Tugas software otomatis berstatus `Dikerjakan` agar langsung masuk antrean pengerjaan.
+- Duplikasi tugas aktif untuk software dan jenis pekerjaan yang sama dicegah.
+- Tabel inventaris menampilkan panel detail teknis tambahan pada desktop; tampilan mobile tetap ringkas.
+- Detail PC mencakup nama komputer, IP, prosesor, RAM, dan sistem operasi.
+
 ## 2026-10-12 — Penyempurnaan UI tugas kolaboratif
 
 - Kolom detail tugas dan form kontribusi dibuat sama lebar agar tidak saling bertabrakan.

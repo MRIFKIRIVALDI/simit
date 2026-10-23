@@ -96,6 +96,7 @@ Merender view ke buffer, kemudian memasukkannya ke layout aplikasi.
 - `007_extended_profiles.sql`: data pegawai tambahan serta metadata foto profil.
 - `008_notification_links.sql`: URL tujuan notifikasi dan pembaruan trigger tugas baru.
 - `009_task_collaboration.sql`: kontribusi per User pada tugas tanpa PIC.
+- `010_software_task_status.sql`: normalisasi tugas software lama agar berstatus `Dikerjakan`.
 
 Detail deployment SQLite, XAMPP, dan rencana adapter MySQL/MariaDB tersedia di `docs/DEPLOYMENT_AND_MYSQL.md`.
 
