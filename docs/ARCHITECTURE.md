@@ -37,7 +37,11 @@ Browser
   → HTML response
 ```
 
+Request `/demo*` memiliki alur khusus: `public/index.php` memvalidasi metode GET dan modul, mengambil fixture `Demo::preview()`, lalu memanggil `View::renderDemo()` tanpa membuat koneksi PDO.
+
 File statis dilayani langsung dari `public/assets`. File upload tidak berada di `public`; download harus melalui `/lampiran/{id}` setelah autentikasi.
+
+Mode demo ditangani oleh `Simit\Core\Demo`, `src/Views/demo/app.php`, dan `src/Views/layouts/demo.php`. Routing demo diproses sebelum koneksi database dibuat. Data demo berupa fixture statis, tidak direpresentasikan sebagai role atau baris pada tabel `users`, dan endpoint demo hanya menerima GET.
 
 Landing page memakai data presentasi statis dan tidak membaca data operasional. Efek 3D menggunakan CSS dan pointer interaction kecil di `landing.js`, dengan fallback pada layar kecil serta `prefers-reduced-motion`.
 
@@ -57,18 +61,20 @@ Menghasilkan token per session dan memverifikasi request POST.
 
 ### `Simit\Core\View`
 
-Merender view ke buffer, kemudian memasukkannya ke layout aplikasi.
+Merender view ke buffer, kemudian memasukkannya ke layout aplikasi. `renderDemo()` menggunakan layout terpisah yang tidak memanggil autentikasi, chat, notifikasi, atau database produksi.
 
 ## Routing utama
 
 | URL | Fungsi | Akses |
 | --- | --- | --- |
 | `/login` | Login | Publik |
+| `/demo` | Dashboard contoh read-only | Publik, GET-only |
+| `/demo/{modul}` | Modul User contoh read-only | Publik, GET-only, whitelist modul |
 | `/logout` | Logout POST | Pengguna masuk |
 | `/` | Landing page untuk tamu; dashboard untuk session aktif | Publik/kontekstual |
-| `/pc` | Inventaris PC | Pengguna masuk; mutasi admin |
-| `/perangkat` | Perangkat lain | Pengguna masuk; mutasi admin |
-| `/software` | Master software | Pengguna masuk; mutasi admin |
+| `/pc` | Inventaris PC | Pengguna masuk; Admin/User dapat tambah/ubah, hapus khusus Admin |
+| `/perangkat` | Perangkat lain | Pengguna masuk; Admin/User dapat tambah/ubah, hapus khusus Admin |
+| `/software` | Master software | Pengguna masuk; Admin/User dapat tambah/ubah, hapus khusus Admin |
 | `/tugas` | Daftar tugas | Pengguna masuk |
 | `/tugas/ambil/{id}` | Ambil tugas POST | Pengguna masuk |
 | `/tugas/hasil/{id}` | Hasil dan upload | PIC atau admin |
@@ -82,8 +88,9 @@ Merender view ke buffer, kemudian memasukkannya ke layout aplikasi.
 | `/foto-profil/{id}` | Menampilkan foto profil privat | Pengguna masuk |
 | `/akun` | Pengelolaan akun | Admin |
 | `/audit` | Audit aktivitas | Admin |
-| `/lampiran/{id}` | Download lampiran | Pengguna masuk |
+| `/lampiran/{id}` | Download lampiran | Admin, PIC/pembuat, kontributor, atau peserta tugas bersama |
 | `/language` | Ganti bahasa POST | Session aktif/publik login |
+| `/api*` | Tidak tersedia | Selalu 404 |
 
 ## Migration
 
@@ -97,6 +104,7 @@ Merender view ke buffer, kemudian memasukkannya ke layout aplikasi.
 - `008_notification_links.sql`: URL tujuan notifikasi dan pembaruan trigger tugas baru.
 - `009_task_collaboration.sql`: kontribusi per User pada tugas tanpa PIC.
 - `010_software_task_status.sql`: normalisasi tugas software lama agar berstatus `Dikerjakan`.
+- `011_security_hardening.sql`: pencatatan percobaan login dan indeks jendela rate limit.
 
 Detail deployment SQLite, XAMPP, dan rencana adapter MySQL/MariaDB tersedia di `docs/DEPLOYMENT_AND_MYSQL.md`.
 

@@ -1,6 +1,13 @@
 # Status Pengembangan SIMIT
 
-Dokumen ini adalah handoff utama untuk pengembang yang melanjutkan SIMIT. Terakhir diperbarui 7 Oktober 2026.
+## Pembaruan 2 November 2026
+
+- Database aktif telah disiapkan untuk data asli: seluruh data operasional dan akun non-admin kosong, satu Admin aktif dipertahankan.
+- Demo publik tersedia dari halaman login, memakai UI User secara read-only, dan tidak membuat koneksi database.
+- Hardening akun, session, password, file privat, cache, dan penolakan rute API telah diterapkan.
+- Backup sebelum pembersihan berada di `storage/backups/` dan tidak masuk version control.
+
+Dokumen ini adalah handoff utama untuk pengembang yang melanjutkan SIMIT. Terakhir diperbarui 2 November 2026.
 
 ## 1. Ringkasan
 
@@ -20,10 +27,11 @@ Database aplikasi menjadi sumber operasional. Spreadsheet hanya menjadi referens
 
 | Area | Status | Catatan |
 | --- | --- | --- |
-| Login | Selesai | Tidak ada registrasi publik. Session memakai cookie HttpOnly dan SameSite Lax. |
+| Login | Selesai | Tidak ada registrasi publik. Session memakai HttpOnly, SameSite Lax, Secure saat HTTPS, idle timeout 30 menit, dan batas absolut 12 jam. |
 | Landing page publik | Selesai | Portfolio tanpa login berisi mockup dashboard, fitur, workflow, role, dan CTA login dengan glassmorphism/3D. |
+| Demo publik | Selesai | Tombol berada di bawah Masuk. UI menyerupai User, fixture statis, GET-only, tanpa akun, PDO, form mutasi, upload, atau akses data utama. |
 | Hak akses | Selesai untuk MVP | Hanya ada Admin dan User. Admin mengelola master, akun, dan ACC; User mengambil serta mengerjakan tugas. |
-| Pengelolaan akun | Selesai untuk MVP | Admin dapat membuat, mengubah, mengaktifkan, dan menonaktifkan akun. Admin tidak dapat menonaktifkan diri sendiri. |
+| Pengelolaan akun | Selesai untuk MVP | Admin dapat membuat, mengubah, mengaktifkan, dan menonaktifkan akun. Admin aktif terakhir tidak dapat dinonaktifkan atau diturunkan menjadi User. |
 | Profil pengguna | Selesai | Nama, email, ID pegawai, telepon, jabatan, divisi, tanggal lahir, alamat, bio, foto, dan kata sandi dapat diperbarui. |
 | Dashboard | Selesai untuk MVP | Kartu ringkasan, tugas prioritas, dan perangkat perlu perhatian. Baris dashboard dapat diklik dan digunakan dengan keyboard. |
 | Inventaris PC | Selesai untuk MVP | Admin dan User dapat menambah/mengubah aset PC; penghapusan khusus Admin. |
@@ -50,7 +58,7 @@ Database aplikasi menjadi sumber operasional. Spreadsheet hanya menjadi referens
 | Verifikasi tugas | Selesai untuk MVP | Tugas pending tersembunyi dari daftar utama, masuk ACC admin, lalu kembali sebagai history setelah disetujui. |
 | Notifikasi | Selesai untuk MVP | Bell menampilkan unread; kartu dapat diklik menuju chat, detail tugas, atau antrean ACC dan otomatis ditandai dibaca. |
 | Chat internal | Selesai untuk MVP | Pesan langsung antar akun aktif, daftar percakapan, dan indikator unread. Saat ini memakai refresh halaman, belum WebSocket. |
-| Backup/restore | Belum | Perlu prosedur dan pengujian sebelum produksi. |
+| Backup/restore | Sebagian | `prepare-production.php` membuat backup privat sebelum pembersihan. Backup terjadwal dan simulasi restore produksi masih perlu disiapkan. |
 
 ## 3. Alur yang sudah berjalan
 
@@ -87,17 +95,18 @@ Kontributor tidak diisi manual. Nama kontributor dibuat otomatis dari akun yang 
 
 Tugas yang sedang menunggu ACC tidak ditampilkan pada daftar Tugas. Setelah disetujui, tugas kembali ke daftar sebagai riwayat berstatus Selesai. Jika ditolak, tugas kembali ke User sebagai Dikerjakan dengan catatan revisi.
 
-## 4. Data awal
+## 4. Kondisi data aktif
 
-Seeder membuat:
+Database aktif telah disiapkan untuk data asli:
 
-- satu akun admin;
-- master lokasi dan kategori;
-- 24 PC contoh dari Lab Komputer;
-- Google Chrome, Anaconda, dan Visual Studio Code;
-- beberapa tugas representatif dari spreadsheet.
+- satu akun Admin aktif dipertahankan tanpa mengubah profil atau password;
+- seluruh akun non-admin dan data operasional telah dihapus;
+- inventaris, software, tugas, chat, notifikasi, lokasi, dan kategori dalam database aktif kosong; audit login Admin dan rate-limit log dapat terisi kembali secara normal setelah aplikasi digunakan;
+- schema dan riwayat migration tetap tersedia;
+- lampiran serta avatar non-admin telah dihapus;
+- backup sebelum pembersihan berada di `storage/backups/` dan tidak masuk Git.
 
-Data spreadsheet yang mengandung email/kata sandi tidak disalin ke database. Beberapa konflik sumber juga sengaja belum diimpor: IP tidak valid/ganda, perangkat tanpa ID, status kosong, dan tanggal tugas terbalik.
+`bin/seed.php` sekarang hanya boleh dipakai pada lingkungan lokal dengan `APP_ENV=local` dan `SIMIT_ALLOW_SAMPLE_SEED=1`. Produksi tidak memakai seeder contoh. Admin awal untuk database benar-benar kosong dibuat melalui `bin/create-admin.php` dengan kredensial dari environment.
 
 ## 5. Tampilan dan identitas
 
@@ -114,27 +123,33 @@ Data spreadsheet yang mengandung email/kata sandi tidak disalin ke database. Beb
 - Prepared statement PDO.
 - Token CSRF untuk seluruh form mutasi.
 - Session ID diregenerasi saat login.
-- Cookie session HttpOnly, SameSite Lax, dan strict mode.
+- Cookie session HttpOnly, SameSite Lax, Secure saat HTTPS, strict mode, idle timeout 30 menit, dan batas absolut 12 jam.
+- Percobaan login dibatasi per IP dan pasangan IP+email.
+- Password baru minimal 12 karakter dengan kombinasi huruf besar/kecil, angka, dan simbol; Argon2id dipakai bila tersedia.
+- Security headers, CSP, HSTS pada HTTPS, no-store cache, dan proteksi clickjacking aktif.
 - Validasi MIME lampiran menggunakan `finfo`, bukan hanya ekstensi.
 - Batas lampiran 10 MB.
 - Nama file penyimpanan dibuat acak; nama asli hanya menjadi metadata.
 - Folder upload berada di luar document root.
 - Foto profil divalidasi lewat MIME dan pemeriksaan gambar, dibatasi 2 MB, diberi nama acak, dan dilayani melalui endpoint terautentikasi.
-- Admin tidak dapat menonaktifkan akun sendiri.
+- Admin aktif terakhir tidak dapat dinonaktifkan atau diturunkan menjadi User.
 - Hasil tugas hanya dapat diisi PIC atau admin.
+- Download lampiran memeriksa Admin, pemilik/PIC, kontributor, atau konteks tugas bersama.
+- Rute `/api` tidak tersedia dan mengembalikan 404.
+- Demo hanya menerima GET, tidak membuat koneksi database, dan memakai data statis.
 
 ## 7. Keterbatasan penting
 
 - SQL migration saat ini ditulis untuk SQLite. Jangan menganggap migration langsung kompatibel dengan MySQL/MariaDB.
 - Aplikasi belum menggunakan framework atau Composer package.
 - Router, controller, dan logika bisnis masih terkonsentrasi di `public/index.php`; perlu dipecah sebelum fitur membesar.
-- Lampiran bisa diunduh semua pengguna yang sudah login. Policy akses per tugas perlu diperketat bila ada data sensitif.
-- Belum ada rate limiting login, reset kata sandi, MFA, atau pemaksaan ganti password awal.
+- Belum ada reset kata sandi mandiri, MFA, atau pemaksaan ganti password awal.
 - Belum ada pagination; daftar besar perlu pagination server-side.
 - Kontribusi kolaboratif belum memiliki edit/hapus kontribusi setelah dikirim; koreksi dilakukan melalui kontribusi baru atau revisi Admin.
 - Chat belum real-time (WebSocket/SSE), belum memiliki lampiran, edit, hapus, atau percakapan grup.
 - Terjemahan belum mencakup seluruh teks lama dan nilai status database.
 - Belum ada penghapusan lampiran, antivirus scanning, thumbnail, atau multi-file sekali kirim.
+- CSP masih mengizinkan inline style/script karena template lama; nonce/hash dapat diterapkan saat frontend direfaktor.
 - Belum ada pengujian otomatis untuk seluruh acceptance criteria PRD.
 - Sites hosting tidak menjalankan PHP. Produksi membutuhkan Apache/Nginx dengan PHP-FPM atau hosting PHP lain.
 

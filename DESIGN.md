@@ -2,7 +2,13 @@
 
 Dokumen ini menjadi acuan visual dan interaksi untuk SIMIT (Sistem Inventaris dan Manajemen IT). Tujuannya agar pengembangan berikutnya tetap konsisten meskipun dikerjakan oleh orang yang berbeda.
 
-Terakhir diperbarui: 23 Oktober 2026.
+Terakhir diperbarui: 2 November 2026.
+
+## Public demo
+
+Tombol demo hanya tersedia di bawah tombol **Masuk** pada halaman login. Demo menggunakan UI operasional yang sama dengan role User: sidebar, topbar, kartu dashboard, tabel, chat, laporan, dan profil. Seluruh isinya berupa fixture statis di source code, tidak memakai akun maupun koneksi database, serta tidak menampilkan data profil asli.
+
+Label **Demo · Hanya lihat** harus selalu terlihat. Demo tidak menyediakan form simpan, edit, hapus, upload, pengiriman chat, notifikasi aktif, atau ekspor laporan. Menu hanya berfungsi untuk berpindah antarhalaman pratinjau.
 
 ## Arah visual
 
@@ -175,4 +181,7 @@ public/assets/css/report-print.css        # cetak, tanda tangan, watermark
 public/assets/css/communication.css       # chat dan notifikasi
 public/assets/css/collaboration.css       # tugas kolaboratif
 public/assets/css/landing.css             # landing glassmorphism/3D
+public/assets/css/demo.css                # tombol demo login + shell User read-only
+src/Views/layouts/demo.php                # layout demo terisolasi
+src/Views/demo/app.php                    # halaman modul demo
 ```

@@ -3,7 +3,9 @@
 /storage/logs/*
 /storage/uploads/*
 /storage/sessions/*
+/storage/backups/*
 !/storage/logs/.gitkeep
 !/storage/uploads/.gitkeep
 !/storage/sessions/.gitkeep
+!/storage/backups/.gitkeep
 

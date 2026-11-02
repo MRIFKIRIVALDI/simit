@@ -1,5 +1,17 @@
 # Changelog
 
+## Production data & isolated demo — 2026-11-02
+
+- Mengosongkan seluruh data operasional dan akun non-admin; satu akun Admin aktif dipertahankan tanpa mengubah profil atau passwordnya.
+- Menambahkan mode demo read-only dengan UI User yang tidak membaca atau menulis database utama.
+- Menempatkan tombol demo hanya di bawah tombol Masuk pada halaman login.
+- Menambahkan menu demo Dashboard, Inventaris PC, Perangkat Lain, Software, Tugas, Chat, Laporan, dan Profil dengan data contoh statis.
+- Memperketat password, session timeout, logout, cache, konfigurasi produksi, dan perlindungan file sensitif.
+- Menonaktifkan rute `/api` karena aplikasi saat ini tidak membutuhkan API publik.
+- Menambahkan prosedur aman `bin/prepare-production.php` beserta backup privat sebelum pembersihan.
+- Menambahkan `tests/security.php` untuk memeriksa pemisahan demo dan kondisi database produksi.
+- Menyelaraskan README, DESIGN, status proyek, arsitektur, operasional, deployment, PRD, dan audit keamanan; menambahkan `docs/DEMO_AND_DATA_ISOLATION.md` sebagai handoff khusus demo.
+
 ## Security hardening — 2026-10-23
 
 - Menutup potensi IDOR pada endpoint unduh lampiran dengan pemeriksaan akses berbasis tugas.

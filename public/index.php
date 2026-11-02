@@ -2,9 +2,8 @@
 declare(strict_types=1);
 require dirname(__DIR__) . '/bootstrap.php';
 
-use Simit\Core\{Auth,Csrf,Database,View};
+use Simit\Core\{Auth,Csrf,Database,Demo,View};
 
-$pdo = Database::connection();
 $path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '', '/');
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
@@ -12,6 +11,18 @@ if ($path === 'language' && $method === 'POST') {
     Csrf::verify(); $_SESSION['lang'] = ($_POST['lang'] ?? 'id') === 'en' ? 'en' : 'id';
     $back = parse_url((string)($_SERVER['HTTP_REFERER'] ?? '/'), PHP_URL_PATH) ?: '/'; header('Location: ' . $back); exit;
 }
+
+if ($path === 'demo' || str_starts_with($path, 'demo/')) {
+    if ($method !== 'GET') { http_response_code(405); header('Allow: GET'); exit('Demo hanya dapat dilihat.'); }
+    $module=$path==='demo'?'dashboard':substr($path,5);
+    $titles=['dashboard'=>'Dashboard','pc'=>__('Inventaris PC','PC Inventory'),'perangkat'=>__('Perangkat Lain','Other Devices'),'software'=>'Software','tugas'=>__('Tugas IT','IT Tasks'),'chat'=>'Chat','laporan'=>__('Laporan','Reports'),'profil'=>__('Profil Saya','My Profile')];
+    if(!isset($titles[$module])){http_response_code(404);exit('Demo page not found.');}
+    View::renderDemo('demo/app',['title'=>$titles[$module],'module'=>$module,'demo'=>Demo::preview()]); exit;
+}
+
+if ($path === 'api' || str_starts_with($path, 'api/')) { http_response_code(404); exit('Not found.'); }
+
+$pdo = Database::connection();
 
 if ($path === 'login') {
     if ($method === 'POST') {
@@ -53,11 +64,11 @@ if ($path === 'profil') {
     }
     if($method==='POST'){
         Csrf::verify();$name=trim((string)($_POST['name']??''));$email=strtolower(trim((string)($_POST['email']??'')));$phone=trim((string)($_POST['phone']??''));$bio=trim((string)($_POST['bio']??''));$employeeId=trim((string)($_POST['employee_id']??''));$position=trim((string)($_POST['position']??''));$department=trim((string)($_POST['department']??''));$address=trim((string)($_POST['address']??''));$birthDate=trim((string)($_POST['birth_date']??''));$password=(string)($_POST['password']??'');
-        if($name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||($password!==''&&strlen($password)<8)||($birthDate!==''&&!preg_match('/^\d{4}-\d{2}-\d{2}$/',$birthDate))){flash('error',__('Data profil belum valid. Kata sandi minimal 8 karakter.','Profile data is invalid. Password must be at least 8 characters.'));redirect('profil');}
+        if($name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||($password!==''&&!Auth::passwordIsStrong($password))||($birthDate!==''&&!preg_match('/^\d{4}-\d{2}-\d{2}$/',$birthDate))){flash('error',__('Data profil belum valid. Kata sandi baru minimal 12 karakter dan harus berisi huruf besar, huruf kecil, angka, serta simbol.','Profile data is invalid. A new password must be at least 12 characters and include uppercase, lowercase, a number, and a symbol.'));redirect('profil');}
         $newAvatar=null;$newAvatarMime=null;$oldAvatar=null;
         try{
             if(isset($_FILES['avatar'])&&$_FILES['avatar']['error']!==UPLOAD_ERR_NO_FILE){$f=$_FILES['avatar'];if($f['error']!==UPLOAD_ERR_OK||$f['size']>2097152)throw new RuntimeException(__('Foto profil maksimal 2 MB.','Profile photo may not exceed 2 MB.'));$mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);$allowed=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'];if(!isset($allowed[$mime])||!getimagesize($f['tmp_name']))throw new RuntimeException(__('Foto harus berformat JPG, PNG, atau WebP.','Photo must be JPG, PNG, or WebP.'));$avatarDir=BASE_PATH.'/storage/avatars';if(!is_dir($avatarDir)&&!mkdir($avatarDir,0775,true)&&!is_dir($avatarDir))throw new RuntimeException(__('Folder foto tidak dapat dibuat.','Photo folder could not be created.'));$newAvatar=bin2hex(random_bytes(20)).'.'.$allowed[$mime];if(!move_uploaded_file($f['tmp_name'],$avatarDir.'/'.$newAvatar))throw new RuntimeException(__('Foto gagal disimpan.','Photo could not be saved.'));$newAvatarMime=$mime;$old=$pdo->prepare('SELECT avatar_stored_name FROM users WHERE id=?');$old->execute([$user['id']]);$oldAvatar=$old->fetchColumn()?:null;}
-            $sql='UPDATE users SET name=?,email=?,phone=?,bio=?,employee_id=?,position=?,department=?,address=?,birth_date=?,updated_at=CURRENT_TIMESTAMP';$args=[$name,$email,$phone?:null,$bio?:null,$employeeId?:null,$position?:null,$department?:null,$address?:null,$birthDate?:null];if($newAvatar){$sql.=',avatar_stored_name=?,avatar_mime_type=?';$args[]=$newAvatar;$args[]=$newAvatarMime;}if($password!==''){$sql.=',password_hash=?';$args[]=password_hash($password,PASSWORD_DEFAULT);}$sql.=' WHERE id=?';$args[]=$user['id'];$pdo->prepare($sql)->execute($args);if($oldAvatar&&$newAvatar&&is_file(BASE_PATH.'/storage/avatars/'.$oldAvatar))unlink(BASE_PATH.'/storage/avatars/'.$oldAvatar);Auth::audit('update','users',(int)$user['id'],'Profile updated');flash('success',__('Profil berhasil diperbarui.','Profile updated successfully.'));
+            $sql='UPDATE users SET name=?,email=?,phone=?,bio=?,employee_id=?,position=?,department=?,address=?,birth_date=?,updated_at=CURRENT_TIMESTAMP';$args=[$name,$email,$phone?:null,$bio?:null,$employeeId?:null,$position?:null,$department?:null,$address?:null,$birthDate?:null];if($newAvatar){$sql.=',avatar_stored_name=?,avatar_mime_type=?';$args[]=$newAvatar;$args[]=$newAvatarMime;}if($password!==''){$sql.=',password_hash=?';$args[]=Auth::hashPassword($password);}$sql.=' WHERE id=?';$args[]=$user['id'];$pdo->prepare($sql)->execute($args);if($oldAvatar&&$newAvatar&&is_file(BASE_PATH.'/storage/avatars/'.$oldAvatar))unlink(BASE_PATH.'/storage/avatars/'.$oldAvatar);Auth::audit('update','users',(int)$user['id'],'Profile updated');flash('success',__('Profil berhasil diperbarui.','Profile updated successfully.'));
         }catch(Throwable $e){if($newAvatar&&is_file(BASE_PATH.'/storage/avatars/'.$newAvatar))unlink(BASE_PATH.'/storage/avatars/'.$newAvatar);flash('error',$e instanceof PDOException?__('Email atau ID pegawai sudah digunakan.','Email or employee ID is already in use.'):$e->getMessage());}redirect('profil');
     }
     $stmt=$pdo->prepare('SELECT id,name,email,role,phone,bio,employee_id,position,department,address,birth_date,avatar_stored_name FROM users WHERE id=?');$stmt->execute([$user['id']]);View::render('profile/index',['title'=>__('Profil Saya','My Profile'),'profile'=>$stmt->fetch()]);exit;
@@ -147,8 +158,9 @@ if ($module === 'akun') {
     }
     if ($action === 'save' && $method === 'POST') {
         Csrf::verify(); $id=(int)($_POST['id']??0); $name=trim((string)($_POST['name']??'')); $email=strtolower(trim((string)($_POST['email']??''))); $role=(string)($_POST['role']??'user'); $password=(string)($_POST['password']??''); $active=isset($_POST['is_active'])?1:0;
-        if($name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||!in_array($role,['admin','user'],true)||(!$id&&strlen($password)<8)){flash('error',__('Periksa nama, email, peran, dan kata sandi minimal 8 karakter.','Check the name, email, role, and password of at least 8 characters.'));redirect('akun/'.($id?'edit/'.$id:'create'));}
-        try{if($id){$sql='UPDATE users SET name=?,email=?,role=?,is_active=?,updated_at=CURRENT_TIMESTAMP';$args=[$name,$email,$role,$active];if($password!==''){$sql.=',password_hash=?';$args[]=password_hash($password,PASSWORD_DEFAULT);}$sql.=' WHERE id=?';$args[]=$id;}else{$sql='INSERT INTO users(name,email,password_hash,role,is_active) VALUES(?,?,?,?,?)';$args=[$name,$email,password_hash($password,PASSWORD_DEFAULT),$role,$active];}$stmt=$pdo->prepare($sql);$stmt->execute($args);$id=$id?: (int)$pdo->lastInsertId();Auth::audit($id?'update':'create','users',$id,'Account management');flash('success',__('Akun berhasil disimpan.','Account saved successfully.'));}catch(Throwable $e){flash('error',__('Email sudah digunakan.','Email is already in use.'));}redirect('akun');
+        if($name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||!in_array($role,['admin','user'],true)||(!$id&&!Auth::passwordIsStrong($password))||($password!==''&&!Auth::passwordIsStrong($password))){flash('error',__('Periksa data akun. Kata sandi minimal 12 karakter dan harus berisi huruf besar, huruf kecil, angka, serta simbol.','Check the account data. Password must be at least 12 characters and include uppercase, lowercase, a number, and a symbol.'));redirect('akun/'.($id?'edit/'.$id:'create'));}
+        if($id){$existing=$pdo->prepare('SELECT role,is_active FROM users WHERE id=?');$existing->execute([$id]);$oldAccount=$existing->fetch();if($oldAccount&&$oldAccount['role']==='admin'&&(int)$oldAccount['is_active']===1&&($role!=='admin'||$active!==1)){$otherAdmins=$pdo->prepare("SELECT COUNT(*) FROM users WHERE role='admin' AND is_active=1 AND id<>?");$otherAdmins->execute([$id]);if(!(int)$otherAdmins->fetchColumn()){flash('error',__('Admin aktif terakhir tidak dapat dinonaktifkan atau diubah menjadi User.','The last active Admin cannot be disabled or changed to User.'));redirect('akun/edit/'.$id);}}}
+        try{if($id){$sql='UPDATE users SET name=?,email=?,role=?,is_active=?,updated_at=CURRENT_TIMESTAMP';$args=[$name,$email,$role,$active];if($password!==''){$sql.=',password_hash=?';$args[]=Auth::hashPassword($password);}$sql.=' WHERE id=?';$args[]=$id;}else{$sql='INSERT INTO users(name,email,password_hash,role,is_active) VALUES(?,?,?,?,?)';$args=[$name,$email,Auth::hashPassword($password),$role,$active];}$stmt=$pdo->prepare($sql);$stmt->execute($args);$id=$id?: (int)$pdo->lastInsertId();Auth::audit($id?'update':'create','users',$id,'Account management');flash('success',__('Akun berhasil disimpan.','Account saved successfully.'));}catch(Throwable $e){flash('error',__('Email sudah digunakan.','Email is already in use.'));}redirect('akun');
     }
     if($action==='toggle'&&$method==='POST'){Csrf::verify();if($id===(int)Auth::user()['id']){flash('error',__('Anda tidak dapat menonaktifkan akun sendiri.','You cannot deactivate your own account.'));redirect('akun');}$stmt=$pdo->prepare('UPDATE users SET is_active=CASE is_active WHEN 1 THEN 0 ELSE 1 END,updated_at=CURRENT_TIMESTAMP WHERE id=?');$stmt->execute([$id]);Auth::audit('toggle','users',$id,'Account status');flash('success',__('Status akun diperbarui.','Account status updated.'));redirect('akun');}
     http_response_code(404); View::render('crud/error',['title'=>'404','message'=>__('Tindakan tidak tersedia.','Action unavailable.')]); exit;

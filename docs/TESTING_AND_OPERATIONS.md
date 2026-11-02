@@ -6,25 +6,21 @@
 cd "D:\tugas kuliah\semester 7\simit"
 Copy-Item .env.example .env
 php bin/migrate.php
-$env:SIMIT_ADMIN_PASSWORD='password-kuat-anda'
-php bin/seed.php
+$env:SIMIT_ADMIN_NAME='Koordinator IT'
+$env:SIMIT_ADMIN_EMAIL='admin@domain-anda.id'
+$env:SIMIT_ADMIN_PASSWORD='Password-Kuat#Anda2026'
+php bin/create-admin.php
+Remove-Item Env:SIMIT_ADMIN_PASSWORD
 php -S localhost:8000 -t public public/router.php
 ```
 
 Buka `http://localhost:8000`.
 
-Migration dan seeder cukup dijalankan saat instalasi atau ketika ada migration baru. Untuk penggunaan harian, jalankan perintah server saja.
+Migration dijalankan saat instalasi atau ketika ada migration baru. `create-admin.php` hanya dipakai pada database kosong. Untuk penggunaan harian, jalankan server saja.
 
-## Akun pengembangan
+## Data contoh lokal
 
-Jika seeder dijalankan tanpa `SIMIT_ADMIN_PASSWORD`:
-
-```text
-Email: admin@simit.local
-Password: Simit!2026Demo
-```
-
-Password tersebut hanya untuk pengembangan dan wajib diganti sebelum deployment.
+Seeder lama hanya untuk pengembangan lokal dan ditolak pada environment production. Jika memang diperlukan pada salinan database lokal, tetapkan `APP_ENV=local` dan `SIMIT_ALLOW_SAMPLE_SEED=1`. Mode demo publik `/demo` tidak memerlukan seeder.
 
 ## Pemeriksaan otomatis
 
@@ -32,15 +28,20 @@ Password tersebut hanya untuk pengembangan dan wajib diganti sebelum deployment.
 php tests/smoke.php
 php tests/workflow.php
 php tests/communication.php
+php tests/security.php
 Get-ChildItem -Recurse -Filter *.php | ForEach-Object { php -l $_.FullName }
 ```
 
-Smoke test memastikan tabel inti dan akun seed tersedia. Workflow test memverifikasi pengumpulan tugas, penyembunyian selama menunggu ACC, dan persetujuan menjadi riwayat selesai. Communication test memverifikasi hanya satu akun dapat mengklaim tugas tanpa PIC, pengiriman chat, serta penghitung notifikasi/pesan belum dibaca. Syntax check memastikan seluruh file PHP dapat diparse.
+Smoke test memastikan tabel inti dan akun Admin tersedia. Workflow test memverifikasi pengumpulan tugas, penyembunyian selama menunggu ACC, dan persetujuan menjadi riwayat selesai. Communication test memverifikasi hanya satu akun dapat mengklaim tugas tanpa PIC, pengiriman chat, serta penghitung notifikasi/pesan belum dibaca. Security test memastikan data operasional tetap kosong, hanya Admin yang tersisa, tidak ada audit yatim, kebijakan password berjalan, fixture demo lengkap, dan membaca demo tidak mengubah database. Audit login Admin dan log rate limit boleh bertambah setelah aplikasi digunakan. Syntax check memastikan seluruh file PHP dapat diparse.
 
 ## Checklist manual setelah perubahan
 
 - Login benar berhasil; password salah ditolak.
 - Pengunjung tanpa login menerima landing page pada `/`; `/login` tetap dapat dibuka dan memiliki tautan kembali.
+- Tombol **Lihat Demo** berada tepat di bawah tombol Masuk; landing page tidak memiliki link langsung ke `/demo`.
+- Semua menu demo (`/demo`, PC, Perangkat, Software, Tugas, Chat, Laporan, Profil) dapat dibuka tanpa login dan hanya menampilkan data fiktif.
+- Source HTML demo tidak memiliki form; POST ke rute demo ditolak dengan HTTP 405.
+- Demo tidak membuat koneksi database, session login, upload, pesan, notifikasi, audit, atau perubahan data.
 - Anchor fitur/alur, CTA login, dark mode, bahasa, mockup 3D, dan layout landing diuji pada desktop serta ponsel.
 - Pratinjau cetak laporan menampilkan judul/header tabel rata tengah, satu kolom tanda tangan kosong tanpa label, dan watermark logo hijau pada setiap halaman tanpa menutupi teks.
 - Watermark diperiksa pada seluruh halaman pratinjau cetak dengan opsi background graphics aktif maupun nonaktif.
@@ -80,6 +81,7 @@ Untuk SQLite, backup minimal harus mencakup:
 - `storage/database/simit.sqlite`
 - `storage/uploads/`
 - `storage/avatars/`
+- `storage/backups/` bila backup persiapan produksi masih ingin dipertahankan
 
 Hentikan write sementara atau gunakan mekanisme backup SQLite yang konsisten sebelum menyalin database aktif. Uji restore pada staging sebelum produksi.
 

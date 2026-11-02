@@ -379,5 +379,4 @@ Bila gagal, gunakan prosedur pemulihan yang telah diuji. Kegagalan migration har
 PRD SIMIT v0.3 mencakup nama dan logo yang dipilih pengguna, arahan antarmuka, kebutuhan inventaris dan alur kerja IT, PHP, serta database migration. Dokumen ini merupakan spesifikasi; belum mencakup pembuatan kode aplikasi atau migration yang dapat dijalankan.
 
 
-Email: admin@simit.local
-Password: Simit!2026Demo
+Catatan implementasi keamanan: kredensial Admin tidak didokumentasikan di PRD atau repository. Admin awal dibuat melalui environment menggunakan `bin/create-admin.php`. Mode portfolio menggunakan demo read-only tanpa akun database.

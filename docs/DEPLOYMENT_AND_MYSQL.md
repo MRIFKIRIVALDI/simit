@@ -129,7 +129,7 @@ Server memerlukan PHP 8.2+, PDO MySQL, mbstring, fileinfo, Apache/Nginx, HTTPS, 
 ## Pilihan hosting
 
 - Portfolio statis: landing page dapat dipasang di hosting static, tetapi login, CRUD, chat, dan database tidak berjalan di sana.
-- Demo aplikasi lengkap: gunakan hosting PHP/MySQL atau VPS.
+- Demo portfolio read-only: memerlukan hosting PHP, tetapi tidak membuka koneksi database. Aplikasi kerja lengkap tetap memerlukan hosting PHP dengan SQLite yang diproteksi atau MySQL/MariaDB/PostgreSQL.
 - Produksi kantor: gunakan server kantor, VPS, atau hosting berbayar yang menyediakan backup, SSL, monitoring, dan database terkelola.
 
 Hosting gratis dapat dipakai untuk demo dengan data palsu, tetapi tidak disarankan untuk inventaris dan percakapan kerja yang sensitif.
