@@ -19,7 +19,9 @@ try {
     for($i=1;$i<=24;$i++){
         $code='PC-'.str_pad((string)$i,3,'0',STR_PAD_LEFT); $pc='LAB-PC-'.str_pad((string)$i,2,'0',STR_PAD_LEFT);
         $pdo->prepare('INSERT OR IGNORE INTO assets(code,type,category_id,location_id,name,status,notes) VALUES(?,?,?,?,?,?,?)')->execute([$code,'PC',$cat,$loc,$pc,'Baik','Data awal spreadsheet']);
-        $asset=(int)$pdo->query("SELECT id FROM assets WHERE code=".$pdo->quote($code))->fetchColumn();
+        $assetQuery=$pdo->prepare('SELECT id FROM assets WHERE code=?');
+        $assetQuery->execute([$code]);
+        $asset=(int)$assetQuery->fetchColumn();
         $pdo->prepare('INSERT OR IGNORE INTO pc_details(asset_id,pc_name,ip_address,processor,ram_gb,storage_type,os,os_version,last_checked_at) VALUES(?,?,?,?,?,?,?,?,?)')->execute([$asset,$pc,'192.168.1.'.(182+$i),'Intel Core i5',8,$i%4===0?'SSD':'HDD','Windows 11','25H2','2026-07-01']);
     }
     foreach ([['Google Chrome','Wajib (Umum)','126.x'],['Anaconda (Python)','Wajib (Akademik)','2024.10'],['Visual Studio Code','Wajib (Akademik)','1.90']] as $s) $pdo->prepare('INSERT OR IGNORE INTO software(name,category,version,status) VALUES(?,?,?,?)')->execute([$s[0],$s[1],$s[2],'Terinstall']);

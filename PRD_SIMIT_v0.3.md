@@ -380,3 +380,20 @@ PRD SIMIT v0.3 mencakup nama dan logo yang dipilih pengguna, arahan antarmuka, k
 
 
 Catatan implementasi keamanan: kredensial Admin tidak didokumentasikan di PRD atau repository. Admin awal dibuat melalui environment menggunakan `bin/create-admin.php`. Mode portfolio menggunakan demo read-only tanpa akun database.
+
+## 22. Secure delivery dan otorisasi data
+
+- Rahasia dan `.env` tidak boleh masuk repository atau artefak publik.
+- Dependency wajib diverifikasi sumber/publisher-nya, dikunci versinya, dan diaudit untuk mengurangi risiko typosquatting serta supply-chain attack.
+- Setiap ID dari request wajib melalui existence check dan policy/ownership check pada server.
+- Semua value SQL wajib memakai parameter binding. Identifier SQL, termasuk kolom dan arah sorting, wajib berasal dari allowlist server karena tidak dapat di-binding.
+- Hak akses dipusatkan dalam policy untuk Admin/User dan tetap diperiksa walaupun tombol tidak tampil di UI.
+- Kode mati dibersihkan setelah referensi dan tes regresi diverifikasi.
+- Build harus gagal bila `.env` terlacak, dependency manifest tidak memiliki lock file, syntax PHP gagal, atau security test gagal.
+
+| ID | Skenario | Hasil yang harus terjadi |
+|---|---|---|
+| AC-22 | Pengguna mengganti ID URL ke record milik pihak lain | Server menolak menggunakan policy; data privat merespons 404 tanpa membocorkan keberadaan record. |
+| AC-23 | Input sorting berisi nama kolom/arah yang tidak diizinkan | Input ditolak atau dinormalisasi ke default allowlist; tidak menjadi fragmen SQL bebas. |
+| AC-24 | `.env` atau manifest dependency tanpa lock file masuk commit | Pipeline keamanan gagal. |
+| AC-25 | User mencoba delete data operasional atau membuka pengelolaan akun | Policy server menolak; menyembunyikan tombol saja tidak dianggap cukup. |

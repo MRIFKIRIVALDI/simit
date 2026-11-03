@@ -1,0 +1,58 @@
+name: Security checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  php-security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Reject tracked environment files
+        shell: bash
+        run: |
+          tracked="$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -vE '(^|/)\.env\.example$' || true)"
+          if [ -n "$tracked" ]; then
+            echo "Environment files must not be tracked:"
+            echo "$tracked"
+            exit 1
+          fi
+
+      - name: Require dependency lock files
+        shell: bash
+        run: |
+          if [ -f composer.json ] && [ ! -f composer.lock ]; then
+            echo "composer.lock is required when composer.json exists."
+            exit 1
+          fi
+          if [ -f package.json ] && [ ! -f package-lock.json ] && [ ! -f pnpm-lock.yaml ] && [ ! -f yarn.lock ]; then
+            echo "A JavaScript dependency lock file is required."
+            exit 1
+          fi
+
+      - name: PHP syntax check
+        shell: bash
+        run: find . -type f -name '*.php' -not -path './vendor/*' -print0 | xargs -0 -n1 php -l
+
+      - name: Application tests
+        shell: bash
+        env:
+          APP_ENV: testing
+          DB_DSN: sqlite:/tmp/simit-ci.sqlite
+          SIMIT_ADMIN_NAME: CI Admin
+          SIMIT_ADMIN_EMAIL: admin-ci@simit.local
+          SIMIT_ADMIN_PASSWORD: CI-Only!Strong123
+        run: |
+          php bin/migrate.php
+          php bin/create-admin.php
+          php tests/smoke.php
+          php tests/workflow.php
+          php tests/communication.php
+          php tests/security.php
+          php tests/policy.php

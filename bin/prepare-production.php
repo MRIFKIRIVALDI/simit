@@ -4,6 +4,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/bootstrap.php';
 
 use Simit\Core\Database;
+use Simit\Core\Sql;
 if (($argv[1] ?? '') !== '--confirm') {
     fwrite(STDERR, "Perintah ini menghapus seluruh data operasional dan akun non-admin.\nJalankan: php bin/prepare-production.php --confirm\n");
     exit(2);
@@ -27,13 +28,17 @@ $pdo=Database::connection();
 $adminCount=(int)$pdo->query("SELECT COUNT(*) FROM users WHERE role='admin' AND is_active=1")->fetchColumn();
 if ($adminCount<1) { fwrite(STDERR,"Dibatalkan: tidak ada akun admin aktif yang dapat dipertahankan.\n"); exit(5); }
 
-$pdo->exec('VACUUM INTO '.$pdo->quote($backupPath));
+$backup=$pdo->prepare('VACUUM INTO ?');
+$backup->execute([$backupPath]);
 $nonAdminAvatars=$pdo->query("SELECT avatar_stored_name FROM users WHERE role<>'admin' AND avatar_stored_name IS NOT NULL")->fetchAll(PDO::FETCH_COLUMN);
 $tables=['attachments','task_contributions','task_status_history','task_assets','inspections','software_installations','asset_condition_counts','notifications','messages','import_batches','audit_logs','tasks','pc_details','assets','software','events','locations','asset_categories','login_attempts'];
 
 $pdo->beginTransaction();
 try {
-    foreach($tables as $table) $pdo->exec('DELETE FROM '.$table);
+    foreach($tables as $table) {
+        $safeTable=Sql::identifier($table,$tables);
+        $pdo->exec('DELETE FROM '.$safeTable);
+    }
     $pdo->exec("DELETE FROM users WHERE role<>'admin'");
     $sequenceTables=array_merge($tables,['users']);
     $placeholders=implode(',',array_fill(0,count($sequenceTables),'?'));

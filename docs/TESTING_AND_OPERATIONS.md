@@ -1,5 +1,21 @@
 # Pengujian dan Operasional
 
+## Security gate
+
+Jalankan sebelum commit/deploy:
+
+```powershell
+git ls-files | Select-String -Pattern '(^|/)\.env($|\.)'
+Get-ChildItem -Recurse -Filter *.php | ForEach-Object { php -l $_.FullName }
+php tests/smoke.php
+php tests/workflow.php
+php tests/communication.php
+php tests/security.php
+php tests/policy.php
+```
+
+Perintah pertama tidak boleh menampilkan `.env` atau `.env.*`; `.env.example` adalah satu-satunya pengecualian yang disengaja. Workflow `.github/workflows/security.yml` menjalankan gate serupa pada push dan pull request.
+
 ## Menjalankan aplikasi
 
 ```powershell
@@ -37,6 +53,8 @@ Smoke test memastikan tabel inti dan akun Admin tersedia. Workflow test memverif
 ## Checklist manual setelah perubahan
 
 - Login benar berhasil; password salah ditolak.
+- Setelah login, tombol Back Chrome tidak menampilkan form login di dalam layout dashboard; `/login` harus kembali mengarah ke Dashboard selama session aktif.
+- Setelah logout, tombol Back/Forward tidak boleh menampilkan halaman privat dari cache; halaman harus diverifikasi ulang dan kembali ke login.
 - Pengunjung tanpa login menerima landing page pada `/`; `/login` tetap dapat dibuka dan memiliki tautan kembali.
 - Tombol **Lihat Demo** berada tepat di bawah tombol Masuk; landing page tidak memiliki link langsung ke `/demo`.
 - Semua menu demo (`/demo`, PC, Perangkat, Software, Tugas, Chat, Laporan, Profil) dapat dibuka tanpa login dan hanya menampilkan data fiktif.

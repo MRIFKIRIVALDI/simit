@@ -24,7 +24,16 @@ simit/
 └── .env.example             # Contoh konfigurasi
 ```
 
-## Request lifecycle
+## Request lifecycle dan lapisan keamanan
+
+- `src/Policies/` memusatkan keputusan akses untuk tugas, lampiran, modul operasional, akun, dan profil.
+- `Gate::authorize()` menghasilkan 403 untuk larangan umum atau hidden 404 untuk record privat agar keberadaan ID tidak bocor.
+- `src/Core/Sql.php` memvalidasi identifier dinamis dengan exact allowlist. Value tetap dikirim melalui prepared statement dan parameter binding.
+- Endpoint berbasis ID mengikuti urutan parse ID → query terikat → existence check → policy/ownership check → operasi.
+- PC, perangkat, dan software adalah data operasional bersama: Admin/User dapat create/update, sementara delete hanya Admin. Data personal, notifikasi, chat, tugas, dan lampiran mengikuti ownership masing-masing.
+- `.github/workflows/security.yml` menjaga `.env`, lock file, syntax PHP, migration, dan regression test pada push/pull request.
+
+Detail wajib dan checklist review berada di `SECURITY.md` serta `docs/SECURE_CODING_POLICY.md`.
 
 ```text
 Browser

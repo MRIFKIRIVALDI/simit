@@ -1,5 +1,22 @@
 # Changelog
 
+## Secure coding policies & ownership — 2026-11-03
+
+- Menambahkan `SECURITY.md`, kebijakan secure coding, audit dependency, requirement PRD, dan checklist review untuk tujuh aturan keamanan.
+- Memastikan `.env` tidak pernah terlacak pada repository saat audit; memperluas `.gitignore` dan menambahkan CI guard.
+- Memverifikasi aplikasi tidak memiliki dependency Composer/NPM pihak ketiga, sehingga tidak ada package aktif yang terindikasi typosquatting.
+- Menambahkan policy terpusat untuk tugas, lampiran, modul, akun, dan profil beserta hidden 404 untuk record privat.
+- Mengganti query test/seeder yang menginterpolasi value dengan prepared statement dan binding.
+- Menambahkan exact allowlist untuk nama tabel, kolom sorting, dan arah sorting melalui `Simit\Core\Sql`.
+- Menghapus blok mustahil, helper legacy duplikat, dan empat view lama yang tidak lagi dirutekan.
+- Menambahkan test policy/identifier serta workflow CI untuk syntax dan security regression.
+
+## Browser navigation & auth history — 2026-11-03
+
+- Pengguna yang masih memiliki session aktif tidak dapat membuka kembali form `/login`; server mengarahkan ke Dashboard.
+- Login dan logout memakai redirect HTTP 303 setelah POST agar browser tidak mengulang pengiriman form.
+- Event `pageshow` memuat ulang halaman yang dipulihkan dari back-forward cache sehingga login lama tidak muncul di dalam layout dashboard dan halaman privat lama tidak tersisa setelah logout.
+
 ## Production data & isolated demo — 2026-11-02
 
 - Mengosongkan seluruh data operasional dan akun non-admin; satu akun Admin aktif dipertahankan tanpa mengubah profil atau passwordnya.

@@ -36,10 +36,11 @@ Default menggunakan `storage/database/simit.sqlite`. Untuk MySQL/MariaDB, ubah `
 ## Keamanan
 
 - Password disimpan menggunakan `password_hash`.
-- Semua query aplikasi menggunakan prepared statement.
+- Semua value input SQL menggunakan prepared statement; identifier dinamis memakai allowlist `Simit\Core\Sql`.
 - Formulir memakai token CSRF.
-- Hak ubah/hapus master dibatasi untuk admin; user berfokus mengambil dan mengerjakan tugas.
+- Otorisasi ID dipusatkan dalam policy; User dapat membuat/mengubah data operasional, sedangkan delete dan pengelolaan akun dibatasi untuk Admin.
 - Kredensial yang ditemukan dalam spreadsheet sumber tidak disalin ke aplikasi.
+- `.env` dan data runtime ditolak oleh `.gitignore` serta pemeriksaan CI.
 
 ## Dokumentasi pengembang
 
@@ -48,6 +49,9 @@ Default menggunakan `storage/database/simit.sqlite`. Untuk MySQL/MariaDB, ubah `
 - [Pengujian, operasional, dan deployment](docs/TESTING_AND_OPERATIONS.md)
 - [Demo read-only dan isolasi data](docs/DEMO_AND_DATA_ISOLATION.md)
 - [Audit keamanan](docs/SECURITY_AUDIT.md)
+- [Kebijakan secure coding](docs/SECURE_CODING_POLICY.md)
+- [Audit dependency](docs/DEPENDENCY_AUDIT.md)
+- [Security policy repository](SECURITY.md)
 - [Riwayat perubahan](CHANGELOG.md)
 
 Mulai dari `docs/PROJECT_STATUS.md` ketika melanjutkan pengembangan.

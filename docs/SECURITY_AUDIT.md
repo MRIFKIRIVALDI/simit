@@ -2,6 +2,8 @@
 
 Audit awal: 23 Oktober 2026  
 Pemeriksaan lanjutan: 2 November 2026
+Pemeriksaan navigasi session: 3 November 2026
+Pemeriksaan secure coding dan ownership: 3 November 2026
 
 ## Temuan dan perbaikan
 
@@ -16,8 +18,14 @@ Pemeriksaan lanjutan: 2 November 2026
 | Session | Session login dapat bertahan terlalu lama pada komputer bersama. | Idle timeout 30 menit, batas absolut 12 jam, rotasi ID saat login, dan penghapusan cookie saat logout. |
 | Password | Kebijakan minimum lama terlalu lemah untuk akun operasional. | Password baru minimal 12 karakter dengan huruf besar, huruf kecil, angka, dan simbol; Argon2id digunakan bila tersedia dan hash lama diperbarui saat login. |
 | Data cache | Halaman sensitif berpotensi tersimpan pada cache browser/proxy. | Respons dinamis memakai `Cache-Control: no-store, private`. |
+| Riwayat browser | Back/Forward dapat memulihkan form login saat session aktif atau halaman privat setelah logout. | `/login` menolak tampilan bagi session aktif, redirect POST memakai 303, dan halaman dari back-forward cache dimuat ulang melalui `pageshow`. |
 | API | Tidak ada API yang dibutuhkan, tetapi pola URL dapat dicoba pengunjung. | Seluruh `/api` mengembalikan 404 dan tidak membuka data. |
 | Konfigurasi | Seeder contoh dapat mengisi ulang data palsu pada produksi. | Seeder ditolak pada `APP_ENV=production` kecuali diaktifkan eksplisit untuk lingkungan lokal. |
+| Rahasia | `.env` berpotensi ikut commit atau muncul kembali di subfolder. | Pola ignore mencakup `.env`/`.env.*` pada seluruh repository, kecuali `.env.example`; CI menolak environment file yang terlacak. Riwayat Git saat audit tidak memuat `.env`. |
+| Supply chain | Package bernama mirip dapat dipasang tanpa verifikasi. | Audit menemukan nol dependency pihak ketiga. CI mewajibkan lock file bila manifest ditambahkan; prosedur verifikasi package didokumentasikan. |
+| IDOR/ownership | Endpoint berbasis ID dapat membaca atau memutasi record yang tidak terkait pengguna. | Policy terpusat ditambahkan untuk tugas, lampiran, modul, akun, dan profil; existence check menghasilkan hidden 404 pada data privat. |
+| SQL injection | Value input atau nama kolom sorting dapat menjadi SQL mentah. | Value input memakai binding. Tabel/kolom/direction dinamis hanya berasal dari exact allowlist melalui `Simit\Core\Sql`. |
+| Kode mati | View/helper lama dan blok mustahil menambah permukaan pemeliharaan. | Blok `if(false)`, helper legacy duplikat, dan empat view yang tidak lagi dirutekan telah dihapus. |
 
 ## Kontrol yang sudah ada
 
@@ -28,6 +36,7 @@ Pemeriksaan lanjutan: 2 November 2026
 - MIME upload diperiksa dengan `finfo`, ukuran dibatasi, dan upload disimpan di luar document root.
 - Output HTML menggunakan escaping `e()` pada data pengguna.
 - Role admin/user diperiksa di server, bukan hanya di antarmuka.
+- Security workflow menjalankan larangan tracked `.env`, lock-file guard, syntax check, dan seluruh test aplikasi.
 
 ## Catatan deployment
 

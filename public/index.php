@@ -2,7 +2,8 @@
 declare(strict_types=1);
 require dirname(__DIR__) . '/bootstrap.php';
 
-use Simit\Core\{Auth,Csrf,Database,Demo,View};
+use Simit\Core\{Auth,Csrf,Database,Demo,Sql,View};
+use Simit\Policies\{AccountPolicy,AttachmentPolicy,Gate,ModulePolicy,ProfilePolicy,TaskPolicy};
 
 $path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '', '/');
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -25,14 +26,15 @@ if ($path === 'api' || str_starts_with($path, 'api/')) { http_response_code(404)
 $pdo = Database::connection();
 
 if ($path === 'login') {
+    if (Auth::user()) redirect('', $method === 'POST' ? 303 : 302);
     if ($method === 'POST') {
         Csrf::verify();
-        if (Auth::attempt((string)($_POST['email'] ?? ''), (string)($_POST['password'] ?? ''))) redirect('');
+        if (Auth::attempt((string)($_POST['email'] ?? ''), (string)($_POST['password'] ?? ''))) redirect('', 303);
         flash('error', 'Email atau kata sandi tidak sesuai.');
     }
     View::render('auth/login', ['title' => 'Masuk']); exit;
 }
-if ($path === 'logout' && $method === 'POST') { Csrf::verify(); Auth::logout(); redirect('login'); }
+if ($path === 'logout' && $method === 'POST') { Csrf::verify(); Auth::logout(); redirect('login', 303); }
 if ($path === '' && !Auth::user()) {
     View::render('landing/index', ['title' => __('SIMIT — Sistem Inventaris dan Manajemen IT','SIMIT — IT Inventory and Management System')]); exit;
 }
@@ -58,10 +60,7 @@ if ($path === 'chat' || $path === 'chat/send') {
 
 if ($path === 'profil') {
     $user=Auth::user();
-    if(false){
-        if($method==='POST'){Csrf::verify();$result=trim((string)($_POST['result']??''));$isFinal=isset($_POST['final_submission'])?1:0;if($result===''){flash('error',__('Teks kontribusi wajib diisi.','Contribution text is required.'));redirect('tugas/hasil/'.$taskId);}if(!in_array($task['status'],['Tersedia','Dikerjakan','Tertunda'],true)){flash('error',__('Tugas sedang menunggu ACC atau sudah selesai.','The task is awaiting approval or already completed.'));redirect('tugas/hasil/'.$taskId);}$pdo->beginTransaction();try{$pdo->prepare('INSERT INTO task_contributions(task_id,user_id,body,is_final) VALUES(?,?,?,?)')->execute([$taskId,Auth::user()['id'],$result,$isFinal]);$pdo->prepare("UPDATE tasks SET status=?,result=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND assignee_id IS NULL")->execute([$isFinal?'Menunggu Verifikasi':'Dikerjakan',$isFinal?$result:null,$taskId]);if($isFinal){$pdo->prepare('UPDATE tasks SET assignee_id=? WHERE id=? AND status=\'Menunggu Verifikasi\' AND assignee_id IS NULL')->execute([Auth::user()['id'],$taskId]);$admins=$pdo->query("SELECT id FROM users WHERE role='admin' AND is_active=1")->fetchAll(PDO::FETCH_COLUMN);foreach($admins as $adminId)notify_user((int)$adminId,'Tugas menunggu ACC',Auth::user()['name'].' mengajukan tugas: '.$task['title'],'/persetujuan');}else{notify_all_users('Bantuan baru pada tugas',Auth::user()['name'].' menambahkan kontribusi: '.$task['title'],(int)Auth::user()['id'],'/tugas/hasil/'.$taskId);}Auth::audit('contribution','tasks',$taskId,'Collaborative task contribution');$pdo->commit();flash('success',$isFinal?__('Tugas diajukan untuk ACC Admin.','Task submitted for Admin approval.'):__('Kontribusi berhasil ditambahkan.','Contribution added successfully.'));}catch(Throwable $e){$pdo->rollBack();flash('error',$e->getMessage());}redirect('tugas/hasil/'.$taskId);}
-        $a=$pdo->prepare('SELECT a.*,u.name uploader FROM attachments a LEFT JOIN users u ON u.id=a.uploader_id WHERE task_id=? ORDER BY a.id DESC');$a->execute([$taskId]);$c=$pdo->prepare('SELECT tc.*,u.name user_name FROM task_contributions tc JOIN users u ON u.id=tc.user_id WHERE tc.task_id=? ORDER BY tc.created_at ASC,tc.id ASC');$c->execute([$taskId]);View::render('tasks/result_collaborative',['title'=>__('Kolaborasi tugas','Task collaboration'),'task'=>$task,'attachments'=>$a->fetchAll(),'contributions'=>$c->fetchAll()]);exit;
-    }
+    Gate::authorize(ProfilePolicy::update($user,(int)$user['id']));
     if($method==='POST'){
         Csrf::verify();$name=trim((string)($_POST['name']??''));$email=strtolower(trim((string)($_POST['email']??'')));$phone=trim((string)($_POST['phone']??''));$bio=trim((string)($_POST['bio']??''));$employeeId=trim((string)($_POST['employee_id']??''));$position=trim((string)($_POST['position']??''));$department=trim((string)($_POST['department']??''));$address=trim((string)($_POST['address']??''));$birthDate=trim((string)($_POST['birth_date']??''));$password=(string)($_POST['password']??'');
         if($name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||($password!==''&&!Auth::passwordIsStrong($password))||($birthDate!==''&&!preg_match('/^\d{4}-\d{2}-\d{2}$/',$birthDate))){flash('error',__('Data profil belum valid. Kata sandi baru minimal 12 karakter dan harus berisi huruf besar, huruf kecil, angka, serta simbol.','Profile data is invalid. A new password must be at least 12 characters and include uppercase, lowercase, a number, and a symbol.'));redirect('profil');}
@@ -76,10 +75,12 @@ if ($path === 'profil') {
 
 if (preg_match('#^tugas/hasil/(\d+)$#',$path,$m) && $method !== 'GET') {
     $taskId=(int)$m[1];$stmt=$pdo->prepare('SELECT t.*,u.name assignee FROM tasks t LEFT JOIN users u ON u.id=t.assignee_id WHERE t.id=?');$stmt->execute([$taskId]);$task=$stmt->fetch();
+    if($task)Gate::authorize(TaskPolicy::submit(Auth::user(),$task),__('Anda tidak dapat mengirim hasil untuk tugas ini.','You cannot submit a result for this task.'),true);
     if($task && $task['assignee_id']===null){Csrf::verify();$result=trim((string)($_POST['result']??''));$isFinal=isset($_POST['final_submission'])?1:0;if($result===''){flash('error',__('Teks kontribusi wajib diisi.','Contribution text is required.'));redirect('tugas/hasil/'.$taskId);}if(!in_array($task['status'],['Tersedia','Dikerjakan','Tertunda'],true)){flash('error',__('Tugas sedang menunggu ACC atau sudah selesai.','The task is awaiting approval or already completed.'));redirect('tugas/hasil/'.$taskId);}$pdo->beginTransaction();try{$pdo->prepare('INSERT INTO task_contributions(task_id,user_id,body,is_final) VALUES(?,?,?,?)')->execute([$taskId,Auth::user()['id'],$result,$isFinal]);if(isset($_FILES['attachment'])&&$_FILES['attachment']['error']!==UPLOAD_ERR_NO_FILE){$f=$_FILES['attachment'];if($f['error']!==UPLOAD_ERR_OK||$f['size']>10485760)throw new RuntimeException(__('Ukuran file maksimal 10 MB.','File size may not exceed 10 MB.'));$mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);$allowed=['image/jpeg'=>'jpg','image/png'=>'png','application/pdf'=>'pdf'];if(!isset($allowed[$mime]))throw new RuntimeException(__('Format file harus JPG, PNG, atau PDF.','File must be JPG, PNG, or PDF.'));$stored=bin2hex(random_bytes(20)).'.'.$allowed[$mime];if(!move_uploaded_file($f['tmp_name'],BASE_PATH.'/storage/uploads/'.$stored))throw new RuntimeException(__('Gagal menyimpan file.','Could not save file.'));$pdo->prepare('INSERT INTO attachments(task_id,uploader_id,original_name,stored_name,mime_type,size_bytes) VALUES(?,?,?,?,?,?)')->execute([$taskId,Auth::user()['id'],basename($f['name']),$stored,$mime,$f['size']]);}$pdo->prepare("UPDATE tasks SET status=?,result=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND assignee_id IS NULL")->execute([$isFinal?'Menunggu Verifikasi':'Dikerjakan',$isFinal?$result:null,$taskId]);if($isFinal){$pdo->prepare('UPDATE tasks SET assignee_id=? WHERE id=? AND status=\'Menunggu Verifikasi\' AND assignee_id IS NULL')->execute([Auth::user()['id'],$taskId]);$admins=$pdo->query("SELECT id FROM users WHERE role='admin' AND is_active=1")->fetchAll(PDO::FETCH_COLUMN);foreach($admins as $adminId)notify_user((int)$adminId,'Tugas menunggu ACC',Auth::user()['name'].' mengajukan tugas: '.$task['title'],'/persetujuan');}else{notify_all_users('Bantuan baru pada tugas',Auth::user()['name'].' menambahkan kontribusi: '.$task['title'],(int)Auth::user()['id'],'/tugas/hasil/'.$taskId);}Auth::audit('contribution','tasks',$taskId,'Collaborative task contribution');$pdo->commit();flash('success',$isFinal?__('Tugas diajukan untuk ACC Admin.','Task submitted for Admin approval.'):__('Kontribusi berhasil ditambahkan.','Contribution added successfully.'));}catch(Throwable $e){$pdo->rollBack();flash('error',$e->getMessage());}redirect('tugas/hasil/'.$taskId);}
 }
 
 if (preg_match('#^foto-profil/(\d+)$#',$path,$m)) {
+    Gate::authorize(ProfilePolicy::viewAvatar(Auth::user()));
     $stmt=$pdo->prepare('SELECT avatar_stored_name,avatar_mime_type FROM users WHERE id=? AND is_active=1');$stmt->execute([(int)$m[1]]);$avatar=$stmt->fetch();$full=$avatar&&$avatar['avatar_stored_name']?BASE_PATH.'/storage/avatars/'.$avatar['avatar_stored_name']:'';
     if(!$full||!is_file($full)){http_response_code(404);exit('Foto tidak ditemukan.');}header('Content-Type: '.$avatar['avatar_mime_type']);header('Content-Length: '.filesize($full));header('Cache-Control: private, max-age=3600');readfile($full);exit;
 }
@@ -87,18 +88,19 @@ if (preg_match('#^foto-profil/(\d+)$#',$path,$m)) {
 if (preg_match('#^lampiran/(\d+)$#',$path,$m)) {
     $stmt=$pdo->prepare('SELECT a.*,t.assignee_id,t.created_by,t.title,EXISTS(SELECT 1 FROM task_contributions tc WHERE tc.task_id=t.id AND tc.user_id=?) AS is_contributor FROM attachments a JOIN tasks t ON t.id=a.task_id WHERE a.id=?');$stmt->execute([(int)(Auth::user()['id']??0),(int)$m[1]]);$file=$stmt->fetch();
     $current=Auth::user();
-    $allowed=$file && $current && ($current['role']==='admin' || (int)$file['assignee_id']===(int)$current['id'] || (int)$file['created_by']===(int)$current['id'] || (int)$file['is_contributor']===1 || $file['assignee_id']===null);
+    $allowed=$file && $current && AttachmentPolicy::download($current,$file);
     if(!$file || !$allowed){http_response_code(404);exit('File tidak ditemukan.');}$full=BASE_PATH.'/storage/uploads/'.$file['stored_name'];if(!is_file($full)){http_response_code(404);exit('File tidak tersedia.');}
     header('Content-Type: '.$file['mime_type']);header('Content-Length: '.filesize($full));header('Content-Disposition: attachment; filename="'.rawurlencode($file['original_name']).'"');readfile($full);exit;
 }
 
 if (preg_match('#^tugas/hasil/(\d+)$#',$path,$m) && $method === 'GET') {
-    $taskId=(int)$m[1];$stmt=$pdo->prepare('SELECT t.*,u.name assignee FROM tasks t LEFT JOIN users u ON u.id=t.assignee_id WHERE t.id=?');$stmt->execute([$taskId]);$task=$stmt->fetch();if($task&&$task['assignee_id']===null){$a=$pdo->prepare('SELECT a.*,u.name uploader FROM attachments a LEFT JOIN users u ON u.id=a.uploader_id WHERE task_id=? ORDER BY a.id DESC');$a->execute([$taskId]);$c=$pdo->prepare('SELECT tc.*,u.name user_name FROM task_contributions tc JOIN users u ON u.id=tc.user_id WHERE tc.task_id=? ORDER BY tc.created_at ASC,tc.id ASC');$c->execute([$taskId]);View::render('tasks/result_collaborative',['title'=>__('Kolaborasi tugas','Task collaboration'),'task'=>$task,'attachments'=>$a->fetchAll(),'contributions'=>$c->fetchAll()]);exit;}
+    $taskId=(int)$m[1];$stmt=$pdo->prepare('SELECT t.*,u.name assignee,EXISTS(SELECT 1 FROM task_contributions tc WHERE tc.task_id=t.id AND tc.user_id=?) AS is_contributor FROM tasks t LEFT JOIN users u ON u.id=t.assignee_id WHERE t.id=?');$stmt->execute([Auth::user()['id'],$taskId]);$task=$stmt->fetch();if($task)Gate::authorize(TaskPolicy::view(Auth::user(),$task),__('Anda tidak dapat melihat tugas ini.','You cannot view this task.'),true);if($task&&$task['assignee_id']===null){$a=$pdo->prepare('SELECT a.*,u.name uploader FROM attachments a LEFT JOIN users u ON u.id=a.uploader_id WHERE task_id=? ORDER BY a.id DESC');$a->execute([$taskId]);$c=$pdo->prepare('SELECT tc.*,u.name user_name FROM task_contributions tc JOIN users u ON u.id=tc.user_id WHERE tc.task_id=? ORDER BY tc.created_at ASC,tc.id ASC');$c->execute([$taskId]);View::render('tasks/result_collaborative',['title'=>__('Kolaborasi tugas','Task collaboration'),'task'=>$task,'attachments'=>$a->fetchAll(),'contributions'=>$c->fetchAll()]);exit;}
 }
 
 if (preg_match('#^tugas/hasil/(\d+)$#',$path,$m)) {
-    $taskId=(int)$m[1];$stmt=$pdo->prepare('SELECT t.*,u.name assignee FROM tasks t LEFT JOIN users u ON u.id=t.assignee_id WHERE t.id=?');$stmt->execute([$taskId]);$task=$stmt->fetch();if(!$task){http_response_code(404);exit('Tugas tidak ditemukan.');}if(!Auth::isAdmin()&&$task['assignee_id']!==null&&(int)$task['assignee_id']!==(int)Auth::user()['id']){http_response_code(403);View::render('crud/error',['title'=>__('Akses ditolak','Access denied'),'message'=>__('Tugas ini sedang dikerjakan pengguna lain.','This task is being handled by another user.')]);exit;}
+    $taskId=(int)$m[1];$stmt=$pdo->prepare('SELECT t.*,u.name assignee,EXISTS(SELECT 1 FROM task_contributions tc WHERE tc.task_id=t.id AND tc.user_id=?) AS is_contributor FROM tasks t LEFT JOIN users u ON u.id=t.assignee_id WHERE t.id=?');$stmt->execute([Auth::user()['id'],$taskId]);$task=$stmt->fetch();if(!$task){http_response_code(404);exit('Tugas tidak ditemukan.');}Gate::authorize(TaskPolicy::view(Auth::user(),$task),__('Anda tidak dapat melihat tugas ini.','You cannot view this task.'),true);
     if($method==='POST'){
+        Gate::authorize(TaskPolicy::submit(Auth::user(),$task),__('Anda tidak dapat mengirim hasil untuk tugas ini.','You cannot submit a result for this task.'),true);
         if(!in_array($task['status'],['Tersedia','Dikerjakan','Tertunda'],true)){flash('error',__('Tugas sedang menunggu ACC atau sudah selesai.','The task is awaiting approval or already completed.'));redirect('tugas/hasil/'.$taskId);}
         Csrf::verify();$result=trim((string)($_POST['result']??''));if($result===''){flash('error',__('Teks hasil wajib diisi.','Result text is required.'));redirect('tugas/hasil/'.$taskId);}
         $pdo->beginTransaction();try{$claim=$pdo->prepare("UPDATE tasks SET assignee_id=COALESCE(assignee_id,?),result=?,status='Menunggu Verifikasi',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status IN ('Tersedia','Dikerjakan','Tertunda') AND (assignee_id IS NULL OR assignee_id=?)");$claim->execute([Auth::user()['id'],$result,$taskId,Auth::user()['id']]);if(!$claim->rowCount())throw new RuntimeException('Tugas sudah dikerjakan pengguna lain.');
@@ -138,7 +140,8 @@ if ($module === 'laporan') {
     View::render('crud/report_v2',['title'=>'Laporan SIMIT','rows'=>$rows,'taskStats'=>$taskStats,'softwareStats'=>$softwareStats,'userStats'=>$userStats,'recent'=>$recent]); exit;
 }
 if ($module === 'persetujuan') {
-    Auth::requireAdmin();
+    Gate::authorize(TaskPolicy::approve(Auth::user()));
+    if(in_array($action,['approve','reject'],true)&&$method==='POST'){$ownerCheck=$pdo->prepare('SELECT id FROM tasks WHERE id=?');$ownerCheck->execute([$id]);Gate::authorize((bool)$ownerCheck->fetchColumn(),'Data tugas tidak ditemukan.',true);}
     if($action==='index'){$rows=$pdo->query("SELECT t.*,u.name assignee,GROUP_CONCAT(DISTINCT u2.name) contributors FROM tasks t LEFT JOIN users u ON u.id=t.assignee_id LEFT JOIN task_contributions tc ON tc.task_id=t.id LEFT JOIN users u2 ON u2.id=tc.user_id WHERE t.status='Menunggu Verifikasi' GROUP BY t.id ORDER BY t.updated_at ASC")->fetchAll();View::render('tasks/approval',['title'=>'ACC Tugas','rows'=>$rows]);exit;}
     if(in_array($action,['approve','reject'],true)&&$method==='POST'){Csrf::verify();$note=trim((string)($_POST['note']??''));$to=$action==='approve'?'Selesai':'Dikerjakan';$taskInfo=$pdo->prepare('SELECT title,assignee_id FROM tasks WHERE id=?');$taskInfo->execute([$id]);$info=$taskInfo->fetch();$stmt=$pdo->prepare("UPDATE tasks SET status=?,verified_by=?,completed_at=CASE WHEN ?='Selesai' THEN CURRENT_TIMESTAMP ELSE NULL END,revision_note=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='Menunggu Verifikasi'");$stmt->execute([$to,Auth::user()['id'],$to,$note?:null,$id]);if($stmt->rowCount()){$pdo->prepare('INSERT INTO task_status_history(task_id,from_status,to_status,changed_by,note) VALUES(?,?,?,?,?)')->execute([$id,'Menunggu Verifikasi',$to,Auth::user()['id'],$note?:null]);if($info&&$info['assignee_id'])notify_user((int)$info['assignee_id'],$action==='approve'?'Tugas disetujui':'Tugas perlu revisi',($info['title']??'Tugas').($note?' — '.$note:''),'/tugas/hasil/'.$id);Auth::audit($action,'tasks',$id,'Task approval');flash('success',$action==='approve'?'Tugas disetujui dan masuk riwayat.':'Tugas dikembalikan kepada user.');}redirect('persetujuan');}
 }
@@ -147,33 +150,34 @@ if ($module === 'audit') {
     View::render('crud/audit',['title'=>'Audit Aktivitas','rows'=>$rows]); exit;
 }
 if ($module === 'akun') {
-    Auth::requireAdmin();
+    Gate::authorize(AccountPolicy::manage(Auth::user()));
     if ($action === 'index') {
         $rows=$pdo->query('SELECT id,name,email,role,is_active,created_at FROM users ORDER BY is_active DESC,name')->fetchAll();
         View::render('users/index',['title'=>__('Pengelolaan Akun','Account Management'),'rows'=>$rows]); exit;
     }
     if (in_array($action,['create','edit'],true)) {
-        $row=[]; if($action==='edit'){$stmt=$pdo->prepare('SELECT id,name,email,role,is_active FROM users WHERE id=?');$stmt->execute([$id]);$row=$stmt->fetch()?:[];}
+        $row=[]; if($action==='edit'){$stmt=$pdo->prepare('SELECT id,name,email,role,is_active FROM users WHERE id=?');$stmt->execute([$id]);$row=$stmt->fetch()?:[];Gate::authorize((bool)$row,'Akun tidak ditemukan.',true);}
         View::render('users/form_two_roles',['title'=>$action==='create'?__('Daftarkan Akun','Register Account'):__('Ubah Akun','Edit Account'),'row'=>$row,'id'=>$id]); exit;
     }
     if ($action === 'save' && $method === 'POST') {
         Csrf::verify(); $id=(int)($_POST['id']??0); $name=trim((string)($_POST['name']??'')); $email=strtolower(trim((string)($_POST['email']??''))); $role=(string)($_POST['role']??'user'); $password=(string)($_POST['password']??''); $active=isset($_POST['is_active'])?1:0;
         if($name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||!in_array($role,['admin','user'],true)||(!$id&&!Auth::passwordIsStrong($password))||($password!==''&&!Auth::passwordIsStrong($password))){flash('error',__('Periksa data akun. Kata sandi minimal 12 karakter dan harus berisi huruf besar, huruf kecil, angka, serta simbol.','Check the account data. Password must be at least 12 characters and include uppercase, lowercase, a number, and a symbol.'));redirect('akun/'.($id?'edit/'.$id:'create'));}
-        if($id){$existing=$pdo->prepare('SELECT role,is_active FROM users WHERE id=?');$existing->execute([$id]);$oldAccount=$existing->fetch();if($oldAccount&&$oldAccount['role']==='admin'&&(int)$oldAccount['is_active']===1&&($role!=='admin'||$active!==1)){$otherAdmins=$pdo->prepare("SELECT COUNT(*) FROM users WHERE role='admin' AND is_active=1 AND id<>?");$otherAdmins->execute([$id]);if(!(int)$otherAdmins->fetchColumn()){flash('error',__('Admin aktif terakhir tidak dapat dinonaktifkan atau diubah menjadi User.','The last active Admin cannot be disabled or changed to User.'));redirect('akun/edit/'.$id);}}}
-        try{if($id){$sql='UPDATE users SET name=?,email=?,role=?,is_active=?,updated_at=CURRENT_TIMESTAMP';$args=[$name,$email,$role,$active];if($password!==''){$sql.=',password_hash=?';$args[]=Auth::hashPassword($password);}$sql.=' WHERE id=?';$args[]=$id;}else{$sql='INSERT INTO users(name,email,password_hash,role,is_active) VALUES(?,?,?,?,?)';$args=[$name,$email,Auth::hashPassword($password),$role,$active];}$stmt=$pdo->prepare($sql);$stmt->execute($args);$id=$id?: (int)$pdo->lastInsertId();Auth::audit($id?'update':'create','users',$id,'Account management');flash('success',__('Akun berhasil disimpan.','Account saved successfully.'));}catch(Throwable $e){flash('error',__('Email sudah digunakan.','Email is already in use.'));}redirect('akun');
+        if($id){$existing=$pdo->prepare('SELECT role,is_active FROM users WHERE id=?');$existing->execute([$id]);$oldAccount=$existing->fetch();Gate::authorize((bool)$oldAccount,'Akun tidak ditemukan.',true);if($oldAccount['role']==='admin'&&(int)$oldAccount['is_active']===1&&($role!=='admin'||$active!==1)){$otherAdmins=$pdo->prepare("SELECT COUNT(*) FROM users WHERE role='admin' AND is_active=1 AND id<>?");$otherAdmins->execute([$id]);if(!(int)$otherAdmins->fetchColumn()){flash('error',__('Admin aktif terakhir tidak dapat dinonaktifkan atau diubah menjadi User.','The last active Admin cannot be disabled or changed to User.'));redirect('akun/edit/'.$id);}}}
+        try{$accountAction=$id?'update':'create';if($id){$sql='UPDATE users SET name=?,email=?,role=?,is_active=?,updated_at=CURRENT_TIMESTAMP';$args=[$name,$email,$role,$active];if($password!==''){$sql.=',password_hash=?';$args[]=Auth::hashPassword($password);}$sql.=' WHERE id=?';$args[]=$id;}else{$sql='INSERT INTO users(name,email,password_hash,role,is_active) VALUES(?,?,?,?,?)';$args=[$name,$email,Auth::hashPassword($password),$role,$active];}$stmt=$pdo->prepare($sql);$stmt->execute($args);$id=$id?: (int)$pdo->lastInsertId();Auth::audit($accountAction,'users',$id,'Account management');flash('success',__('Akun berhasil disimpan.','Account saved successfully.'));}catch(Throwable $e){flash('error',__('Email sudah digunakan.','Email is already in use.'));}redirect('akun');
     }
-    if($action==='toggle'&&$method==='POST'){Csrf::verify();if($id===(int)Auth::user()['id']){flash('error',__('Anda tidak dapat menonaktifkan akun sendiri.','You cannot deactivate your own account.'));redirect('akun');}$stmt=$pdo->prepare('UPDATE users SET is_active=CASE is_active WHEN 1 THEN 0 ELSE 1 END,updated_at=CURRENT_TIMESTAMP WHERE id=?');$stmt->execute([$id]);Auth::audit('toggle','users',$id,'Account status');flash('success',__('Status akun diperbarui.','Account status updated.'));redirect('akun');}
+    if($action==='toggle'&&$method==='POST'){Csrf::verify();if($id===(int)Auth::user()['id']){flash('error',__('Anda tidak dapat menonaktifkan akun sendiri.','You cannot deactivate your own account.'));redirect('akun');}$target=$pdo->prepare('SELECT id FROM users WHERE id=?');$target->execute([$id]);Gate::authorize((bool)$target->fetchColumn(),'Akun tidak ditemukan.',true);$stmt=$pdo->prepare('UPDATE users SET is_active=CASE is_active WHEN 1 THEN 0 ELSE 1 END,updated_at=CURRENT_TIMESTAMP WHERE id=?');$stmt->execute([$id]);Auth::audit('toggle','users',$id,'Account status');flash('success',__('Status akun diperbarui.','Account status updated.'));redirect('akun');}
     http_response_code(404); View::render('crud/error',['title'=>'404','message'=>__('Tindakan tidak tersedia.','Action unavailable.')]); exit;
 }
 if (!isset($configs[$module])) { http_response_code(404); View::render('crud/error',['title'=>'Tidak ditemukan','message'=>'Halaman yang Anda cari tidak tersedia.']); exit; }
 $config=$configs[$module];
 $config['title']=__($config['title']);
 $config['fields']=array_map(fn($label)=>__($label),$config['fields']);
+$table=Sql::identifier($config['table'],['assets','software','tasks']);
 
 foreach (($config['selects']??[]) as $field=>$source) {
     if (is_array($source) && isset($source['table'])) {
-        $label=$source['table']==='assets'?'name':'name';
-        $config['options'][$field]=$pdo->query("SELECT id,$label name FROM {$source['table']}" . ($source['table']==='users'?' WHERE is_active=1':'') . " ORDER BY name")->fetchAll();
+        $optionTable=Sql::identifier((string)$source['table'],['users','locations','asset_categories']);
+        $config['options'][$field]=$pdo->query("SELECT id,name FROM $optionTable" . ($optionTable==='users'?' WHERE is_active=1':'') . " ORDER BY name")->fetchAll();
     } else $config['options'][$field]=array_map(fn($v)=>['id'=>$v,'name'=>$v],$source);
 }
 
@@ -182,23 +186,25 @@ if ($action==='index') {
     if(isset($config['type'])){$where[]='x.type=?';$params[]=$config['type'];}
     if($module==='tugas'){$where[]="x.status<>'Menunggu Verifikasi'";if(!Auth::isAdmin()){$where[]="(x.assignee_id IS NULL OR x.assignee_id=?)";$params[]=Auth::user()['id'];}}
     if($q!==''){$searchField=$module==='tugas'?'x.title':($module==='pemeriksaan'?'x.findings':'x.name');$where[]="($searchField LIKE ?)";$params[]="%$q%";}
+    $sortable=$module==='tugas'?['id','number','title','priority','status','due_at']:['id','name','status','created_at'];
+    $requestedSort=(string)($_GET['sort']??'id');$sort=Sql::identifier(in_array($requestedSort,$sortable,true)?$requestedSort:'id',$sortable);$direction=Sql::direction((string)($_GET['direction']??'DESC'));
     $sql="SELECT x.*";
-    if($config['table']==='assets')$sql.=',l.name location,c.name category'.($module==='pc'?',p.pc_name,p.ip_address,p.ram_gb,p.os_version':'');
-    if($config['table']==='tasks')$sql.=',u.name assignee';
-    $sql.=" FROM {$config['table']} x";
-    if($config['table']==='assets')$sql.=' LEFT JOIN locations l ON l.id=x.location_id LEFT JOIN asset_categories c ON c.id=x.category_id'.($module==='pc'?' LEFT JOIN pc_details p ON p.asset_id=x.id':'');
-    if($config['table']==='tasks')$sql.=' LEFT JOIN users u ON u.id=x.assignee_id';
-    if($where)$sql.=' WHERE '.implode(' AND ',$where); $sql.=' ORDER BY x.id DESC';
+    if($table==='assets')$sql.=',l.name location,c.name category'.($module==='pc'?',p.pc_name,p.ip_address,p.ram_gb,p.os_version':'');
+    if($table==='tasks')$sql.=',u.name assignee';
+    $sql.=" FROM $table x";
+    if($table==='assets')$sql.=' LEFT JOIN locations l ON l.id=x.location_id LEFT JOIN asset_categories c ON c.id=x.category_id'.($module==='pc'?' LEFT JOIN pc_details p ON p.asset_id=x.id':'');
+    if($table==='tasks')$sql.=' LEFT JOIN users u ON u.id=x.assignee_id';
+    if($where)$sql.=' WHERE '.implode(' AND ',$where); $sql.=" ORDER BY x.$sort $direction";
     $stmt=$pdo->prepare($sql);$stmt->execute($params);$rows=$stmt->fetchAll();
     View::render('crud/index',['title'=>$config['title'],'rows'=>$rows,'module'=>$module,'config'=>$config,'q'=>$q]); exit;
 }
 if ($action==='create'||$action==='edit') {
-    if(!Auth::isAdmin()&&!in_array($module,['pc','perangkat','software'],true)&&!($module==='tugas'&&$action==='create')){Auth::requireAdmin();} $row=[];
-    if($action==='edit'){$sql="SELECT x.*".($module==='pc'?',p.pc_name,p.ip_address,p.processor,p.ram_gb,p.storage_type,p.storage_value,p.os,p.os_version':'')." FROM {$config['table']} x".($module==='pc'?' LEFT JOIN pc_details p ON p.asset_id=x.id':'')." WHERE x.id=?";$stmt=$pdo->prepare($sql);$stmt->execute([$id]);$row=$stmt->fetch()?:[];}
+    Gate::authorize($action==='create'?ModulePolicy::create(Auth::user(),$module):ModulePolicy::update(Auth::user(),$module));$row=[];
+    if($action==='edit'){$sql="SELECT x.*".($module==='pc'?',p.pc_name,p.ip_address,p.processor,p.ram_gb,p.storage_type,p.storage_value,p.os,p.os_version':'')." FROM $table x".($module==='pc'?' LEFT JOIN pc_details p ON p.asset_id=x.id':'')." WHERE x.id=?";$stmt=$pdo->prepare($sql);$stmt->execute([$id]);$row=$stmt->fetch()?:[];if(!$row){http_response_code(404);View::render('crud/error',['title'=>'Tidak ditemukan','message'=>'Data tidak ditemukan.']);exit;}}
     View::render('crud/form',['title'=>($action==='create'?__('Tambah').' ':__('Ubah').' ').$config['title'],'row'=>$row,'module'=>$module,'config'=>$config,'id'=>$id]);exit;
 }
 if ($action==='save' && $method==='POST') {
-    if(!Auth::isAdmin()&&!in_array($module,['pc','perangkat','software'],true)&&!($module==='tugas'&&(int)($_POST['id']??0)===0)){Auth::requireAdmin();}Csrf::verify();$id=(int)($_POST['id']??0);$data=[];$errors=[];
+    $requestedId=(int)($_POST['id']??0);Gate::authorize($requestedId?ModulePolicy::update(Auth::user(),$module):ModulePolicy::create(Auth::user(),$module));if($requestedId){$ownerCheck=$pdo->prepare("SELECT id FROM $table WHERE id=?");$ownerCheck->execute([$requestedId]);Gate::authorize((bool)$ownerCheck->fetchColumn(),'Data tidak ditemukan.',true);}Csrf::verify();$id=$requestedId;$data=[];$errors=[];
     foreach($config['fields'] as $field=>$label){$value=trim((string)($_POST[$field]??''));if(in_array($field,['code','name','title','number','event_date','inspected_at'],true)&&$value==='')$errors[]="$label wajib diisi.";$data[$field]=$value===''?null:$value;}
     if($module==='tugas'&&!Auth::isAdmin()&&$id===0){$data['assignee_id']=null;$data['status']='Tersedia';$data['created_by']=Auth::user()['id'];}
     if(isset($data['quantity']) && (!is_numeric($data['quantity'])||(int)$data['quantity']<1))$errors[]='Jumlah minimal 1.';
@@ -207,11 +213,11 @@ if ($action==='save' && $method==='POST') {
     $pcData=[];if($module==='pc'){foreach(['pc_name','ip_address','processor','ram_gb','storage_type','storage_value','os','os_version'] as $key){$pcData[$key]=$data[$key]??null;unset($data[$key]);}}
     if(isset($config['type']))$data['type']=$config['type'];
     if($module==='pemeriksaan')$data['inspector_id']=Auth::user()['id'];
-    try{$pdo->beginTransaction();if($id){$set=implode(',',array_map(fn($k)=>"$k=?",array_keys($data)));$stmt=$pdo->prepare("UPDATE {$config['table']} SET $set".(in_array($config['table'],['assets','software','tasks','events'],true)?',updated_at=CURRENT_TIMESTAMP':'').' WHERE id=?');$stmt->execute([...array_values($data),$id]);$verb='update';}else{$cols=implode(',',array_keys($data));$marks=implode(',',array_fill(0,count($data),'?'));$stmt=$pdo->prepare("INSERT INTO {$config['table']}($cols) VALUES($marks)");$stmt->execute(array_values($data));$id=(int)$pdo->lastInsertId();$verb='create';}if($module==='pc'){$exists=(int)$pdo->query('SELECT COUNT(*) FROM pc_details WHERE asset_id='.(int)$id)->fetchColumn();if($exists){$set=implode(',',array_map(fn($k)=>"$k=?",array_keys($pcData)));$stmt=$pdo->prepare("UPDATE pc_details SET $set WHERE asset_id=?");$stmt->execute([...array_values($pcData),$id]);}else{$cols=implode(',',array_keys($pcData));$marks=implode(',',array_fill(0,count($pcData),'?'));$stmt=$pdo->prepare("INSERT INTO pc_details(asset_id,$cols) VALUES(?,$marks)");$stmt->execute([$id,...array_values($pcData)]);}}Auth::audit($verb,$config['table'],$id,$config['title']);$pdo->commit();flash('success','Data berhasil disimpan.');}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();flash('error','Data gagal disimpan. Pastikan kode, nama komputer, atau IP tidak duplikat.');}
+    try{$pdo->beginTransaction();$allowedColumns=array_values(array_unique([...array_keys($config['fields']),'type','created_by']));$columns=Sql::identifiers(array_keys($data),$allowedColumns);if($id){$set=implode(',',array_map(fn($k)=>"$k=?",$columns));$stmt=$pdo->prepare("UPDATE $table SET $set".(in_array($table,['assets','software','tasks'],true)?',updated_at=CURRENT_TIMESTAMP':'').' WHERE id=?');$stmt->execute([...array_values($data),$id]);$verb='update';}else{$cols=implode(',',$columns);$marks=implode(',',array_fill(0,count($data),'?'));$stmt=$pdo->prepare("INSERT INTO $table($cols) VALUES($marks)");$stmt->execute(array_values($data));$id=(int)$pdo->lastInsertId();$verb='create';}if($module==='pc'){$check=$pdo->prepare('SELECT COUNT(*) FROM pc_details WHERE asset_id=?');$check->execute([$id]);$exists=(int)$check->fetchColumn();$pcColumns=Sql::identifiers(array_keys($pcData),['pc_name','ip_address','processor','ram_gb','storage_type','storage_value','os','os_version']);if($exists){$set=implode(',',array_map(fn($k)=>"$k=?",$pcColumns));$stmt=$pdo->prepare("UPDATE pc_details SET $set WHERE asset_id=?");$stmt->execute([...array_values($pcData),$id]);}else{$cols=implode(',',$pcColumns);$marks=implode(',',array_fill(0,count($pcData),'?'));$stmt=$pdo->prepare("INSERT INTO pc_details(asset_id,$cols) VALUES(?,$marks)");$stmt->execute([$id,...array_values($pcData)]);}}Auth::audit($verb,$table,$id,$config['title']);$pdo->commit();flash('success','Data berhasil disimpan.');}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();flash('error','Data gagal disimpan. Pastikan kode, nama komputer, atau IP tidak duplikat.');}
     if($module==='software'&&$id){$stmt=$pdo->prepare('SELECT * FROM software WHERE id=?');$stmt->execute([$id]);$sw=$stmt->fetch();if($sw&&in_array($sw['status'],['Perlu Install','Perlu Dihapus'],true)){$kind=$sw['status']==='Perlu Install'?'INSTALL':'REMOVE';$title=($kind==='INSTALL'?'Instal ':'Hapus ').$sw['name'];$due=$kind==='INSTALL'?($sw['starts_at']??null):($sw['ends_at']??null);$prefix=$kind==='INSTALL'?'Instal ':'Hapus ';$check=$pdo->prepare("SELECT COUNT(*) FROM tasks WHERE software_id=? AND title LIKE ? AND status NOT IN ('Selesai','Dibatalkan')");$check->execute([$id,$prefix.'%']);if(!(int)$check->fetchColumn()){$next=(int)$pdo->query("SELECT COALESCE(MAX(CAST(SUBSTR(number,5) AS INTEGER)),0)+1 FROM tasks WHERE number GLOB 'TSK-[0-9]*'")->fetchColumn();$number='TSK-'.str_pad((string)$next,3,'0',STR_PAD_LEFT);$pdo->prepare("INSERT INTO tasks(number,title,description,category,priority,status,due_at,software_id,created_by) VALUES(?,?,?,?,?,'Dikerjakan',?,?,?)")->execute([$number,$title,'Tugas otomatis dari status software: '.$sw['status'],'Software','Sedang',$due,$id,Auth::user()['id']]);}}elseif($sw){$pdo->prepare("UPDATE tasks SET status='Dibatalkan',updated_at=CURRENT_TIMESTAMP WHERE software_id=? AND status NOT IN ('Selesai','Dibatalkan')")->execute([$id]);}}
     redirect($module);
 }
-if ($action==='delete' && $method==='POST') { Auth::requireAdmin();Csrf::verify();$stmt=$pdo->prepare("DELETE FROM {$config['table']} WHERE id=?");try{$stmt->execute([$id]);Auth::audit('delete',$config['table'],$id,$config['title']);flash('success','Data berhasil dihapus.');}catch(Throwable $e){flash('error','Data memiliki riwayat dan tidak dapat dihapus.');}redirect($module); }
+if ($action==='delete' && $method==='POST') { Gate::authorize(ModulePolicy::delete(Auth::user(),$module));$ownerCheck=$pdo->prepare("SELECT id FROM $table WHERE id=?");$ownerCheck->execute([$id]);Gate::authorize((bool)$ownerCheck->fetchColumn(),'Data tidak ditemukan.',true);Csrf::verify();$stmt=$pdo->prepare("DELETE FROM $table WHERE id=?");try{$stmt->execute([$id]);Auth::audit('delete',$table,$id,$config['title']);flash('success','Data berhasil dihapus.');}catch(Throwable $e){flash('error','Data memiliki riwayat dan tidak dapat dihapus.');}redirect($module); }
 if ($module==='tugas'&&$action==='ambil'&&$method==='POST') { Csrf::verify();$check=$pdo->prepare('SELECT assignee_id FROM tasks WHERE id=? AND status=\'Tersedia\'');$check->execute([$id]);$current=$check->fetchColumn();if($current===false){flash('error',__('Tugas tidak tersedia.','Task is not available.'));redirect('tugas');}if($current===null){redirect('tugas/hasil/'.$id);} $stmt=$pdo->prepare("UPDATE tasks SET assignee_id=?,status='Dikerjakan',taken_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='Tersedia' AND assignee_id IS NULL");$stmt->execute([Auth::user()['id'],$id]);flash($stmt->rowCount()?'success':'error',$stmt->rowCount()?__('Tugas berhasil diambil.','Task claimed successfully.'):__('Tugas sudah diambil pengguna lain.','Task was claimed by another user.'));redirect('tugas'); }
 http_response_code(404);View::render('crud/error',['title'=>'Tidak ditemukan','message'=>'Tindakan tidak tersedia.']);
 

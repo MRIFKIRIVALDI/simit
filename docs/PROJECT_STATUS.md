@@ -1,11 +1,25 @@
 # Status Pengembangan SIMIT
 
+## Pembaruan keamanan 3 November 2026
+
+- Tujuh aturan secure coding telah diterapkan dan didokumentasikan pada `SECURITY.md` serta `docs/SECURE_CODING_POLICY.md`.
+- Policy ownership tersedia di `src/Policies/`; allowlist identifier SQL tersedia di `src/Core/Sql.php`.
+- Repository tidak melacak `.env`, dan audit history tidak menemukan `.env` pernah di-commit.
+- Tidak ada dependency Composer/NPM pihak ketiga pada versi ini; baseline dicatat di `docs/DEPENDENCY_AUDIT.md`.
+- GitHub Actions menjalankan secret-file guard, lock-file guard, syntax check, migration, dan test suite.
+
 ## Pembaruan 2 November 2026
 
 - Database aktif telah disiapkan untuk data asli: seluruh data operasional dan akun non-admin kosong, satu Admin aktif dipertahankan.
 - Demo publik tersedia dari halaman login, memakai UI User secara read-only, dan tidak membuat koneksi database.
 - Hardening akun, session, password, file privat, cache, dan penolakan rute API telah diterapkan.
 - Backup sebelum pembersihan berada di `storage/backups/` dan tidak masuk version control.
+
+## Perbaikan 3 November 2026
+
+- Navigasi Back/Forward Chrome kini memverifikasi ulang session melalui `pageshow`.
+- `/login` mengarahkan pengguna yang masih login kembali ke Dashboard, sehingga form login tidak dapat muncul di dalam shell aplikasi.
+- Redirect setelah login/logout memakai HTTP 303.
 
 Dokumen ini adalah handoff utama untuk pengembang yang melanjutkan SIMIT. Terakhir diperbarui 2 November 2026.
 
