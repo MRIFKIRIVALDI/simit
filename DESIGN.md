@@ -4,6 +4,14 @@ Dokumen ini menjadi acuan visual dan interaksi untuk SIMIT (Sistem Inventaris da
 
 Terakhir diperbarui: 2 November 2026.
 
+## Interaksi logo dan motion graphic
+
+- Seluruh gambar logo SIMIT merupakan elemen interaktif dan membuka `/motion`.
+- Kursor, fokus keyboard, Enter, dan Spasi harus menghasilkan perilaku yang sama. Logo yang sudah berada di dalam tautan diarahkan ke `/motion`; logo dekoratif memperoleh semantik link melalui JavaScript.
+- Halaman motion memakai latar forest green gelap, player 16:9, tombol kembali yang selalu terlihat, kontrol video native, dan tombol suara tambahan.
+- Video dimulai otomatis dalam keadaan muted agar sesuai kebijakan autoplay browser. Pengguna dapat mengaktifkan suara secara eksplisit.
+- Pada kunjungan langsung tanpa riwayat browser, tombol kembali mengarah ke landing page.
+
 ## Public demo
 
 Tombol demo hanya tersedia di bawah tombol **Masuk** pada halaman login. Demo menggunakan UI operasional yang sama dengan role User: sidebar, topbar, kartu dashboard, tabel, chat, laporan, dan profil. Seluruh isinya berupa fixture statis di source code, tidak memakai akun maupun koneksi database, serta tidak menampilkan data profil asli.

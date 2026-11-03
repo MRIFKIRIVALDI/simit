@@ -1,5 +1,12 @@
 # Status Pengembangan SIMIT
 
+## Pembaruan motion graphic 3 November 2026
+
+- Aset video tersedia di `public/assets/video/motion_graphis_simit.mp4` dan halaman publiknya berada di `/motion`.
+- Semua logo SIMIT yang tampil di UI dapat diklik atau diaktifkan dengan keyboard untuk membuka video.
+- Video autoplay muted, memiliki kontrol suara/player, serta tombol kembali dengan fallback aman.
+- Endpoint motion diproses sebelum koneksi database dan dapat dilihat tanpa login.
+
 ## Pembaruan keamanan 3 November 2026
 
 - Tujuh aturan secure coding telah diterapkan dan didokumentasikan pada `SECURITY.md` serta `docs/SECURE_CODING_POLICY.md`.

@@ -21,6 +21,8 @@ php -S localhost:8000 -t public public/router.php
 
 Buka `http://localhost:8000`. Tombol demo tersedia di bawah tombol Masuk pada halaman login. Demo memakai UI User dengan data statis read-only dan tidak membuka koneksi database. Jangan menjalankan `bin/seed.php` pada produksi; seeder data contoh hanya diizinkan jika `SIMIT_ALLOW_SAMPLE_SEED=1` ditetapkan secara eksplisit pada lingkungan lokal.
 
+Klik logo SIMIT di halaman mana pun untuk membuka motion graphic publik di `/motion`. Video dimulai otomatis tanpa suara; kontrol pemutar dan tombol aktivasi suara tersedia di dalam halaman tersebut.
+
 Untuk menyiapkan database asli dengan menghapus data contoh dan mempertahankan Admin:
 
 ```bash

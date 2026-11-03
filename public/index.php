@@ -13,6 +13,11 @@ if ($path === 'language' && $method === 'POST') {
     $back = parse_url((string)($_SERVER['HTTP_REFERER'] ?? '/'), PHP_URL_PATH) ?: '/'; header('Location: ' . $back); exit;
 }
 
+if ($path === 'motion') {
+    if ($method !== 'GET') { http_response_code(405); header('Allow: GET'); exit('Method not allowed.'); }
+    View::renderStandalone('motion/index',['title'=>__('Identitas SIMIT','SIMIT Identity')]); exit;
+}
+
 if ($path === 'demo' || str_starts_with($path, 'demo/')) {
     if ($method !== 'GET') { http_response_code(405); header('Allow: GET'); exit('Demo hanya dapat dilihat.'); }
     $module=$path==='demo'?'dashboard':substr($path,5);

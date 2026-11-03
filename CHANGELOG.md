@@ -1,5 +1,12 @@
 # Changelog
 
+## Clickable logo & motion graphic — 2026-11-03
+
+- Memindahkan `motion_graphis_simit.mp4` ke aset publik `public/assets/video/` agar dapat dilayani langsung oleh web server.
+- Menambahkan halaman publik `/motion` dengan video autoplay muted, kontrol pemutar, tombol aktif/nonaktif suara, serta tombol kembali dengan fallback ke beranda.
+- Semua gambar logo SIMIT pada landing, login, aplikasi, demo, CTA, dan laporan kini membuka halaman motion melalui satu handler terpusat yang juga mendukung keyboard.
+- Halaman motion tidak memerlukan autentikasi maupun koneksi database sehingga aman digunakan sebagai bagian portfolio publik.
+
 ## Secure coding policies & ownership — 2026-11-03
 
 - Menambahkan `SECURITY.md`, kebijakan secure coding, audit dependency, requirement PRD, dan checklist review untuk tujuh aturan keamanan.
