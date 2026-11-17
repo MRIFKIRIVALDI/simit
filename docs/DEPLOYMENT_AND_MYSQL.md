@@ -2,21 +2,16 @@
 
 Dokumen ini menjelaskan kondisi database SIMIT saat ini, cara menjalankan aplikasi dengan XAMPP, serta rencana migrasi dari SQLite ke MySQL/MariaDB untuk penggunaan di lingkungan kerja.
 
-Terakhir diperbarui: 8 Oktober 2026.
+Terakhir diperbarui: 17 November 2026.
 
 ## Kondisi saat ini
 
-SIMIT saat ini menggunakan SQLite:
+SIMIT aktif menggunakan MariaDB 10.4.32 dari XAMPP melalui PDO MySQL. Database lokal bernama `db_aplikasi`; schema dibuat otomatis dari `database/migrations/mysql/`. SQLite lama di `storage/database/simit.sqlite` tidak lagi menjadi database runtime dan dipertahankan sebagai arsip verifikasi.
 
-```text
-storage/database/simit.sqlite
-```
-
-PHP, migration, seeder, upload lampiran, foto profil, chat, notifikasi, dan laporan berjalan dengan database tersebut. Untuk menjalankan versi lokal saat ini, XAMPP tidak wajib digunakan. PHP CLI sudah cukup:
+Untuk menjalankan versi lokal, aktifkan MySQL XAMPP lalu jalankan:
 
 ```powershell
 php bin/migrate.php
-php bin/seed.php
 php -S localhost:8000 -t public public/router.php
 ```
 
@@ -24,9 +19,7 @@ Buka `http://localhost:8000`.
 
 ## Apakah perlu XAMPP?
 
-XAMPP hanya diperlukan jika ingin memakai Apache dan MySQL/MariaDB secara lokal. Saat menggunakan SQLite, cukup jalankan PHP development server atau gunakan Apache XAMPP tanpa service MySQL.
-
-Setelah migrasi ke MySQL/MariaDB, nyalakan service **Apache** dan **MySQL** dari XAMPP Control Panel.
+Service **MySQL** XAMPP wajib aktif untuk aplikasi lokal. Apache bersifat opsional bila aplikasi dijalankan melalui PHP development server; bila memakai Apache, document root harus diarahkan ke folder `public`.
 
 ## Rekomendasi untuk implementasi kerja
 
@@ -36,41 +29,31 @@ Rekomendasi praktis SIMIT adalah MariaDB/MySQL karena dukungan hosting PHP, cPan
 
 ## Status migrasi MySQL
 
-Migrasi MySQL belum dilakukan pada kode saat ini. Migration di `database/migrations/` masih ditulis untuk SQLite. Jangan hanya mengganti nama driver pada `.env` lalu menganggap migrasi selesai.
+Migrasi selesai pada 17 November 2026. Adapter MySQL berada di `src/Core/Database.php`, schema MariaDB berada di `database/migrations/mysql/`, dan runner `bin/migrate.php` memilih dialect berdasarkan driver aktif. Schema terverifikasi memiliki 21 tabel, 29 foreign key, satu trigger tugas, seluruh tabel InnoDB, serta satu akun Admin dengan hash password yang sama seperti sumber SQLite.
 
-Migration MySQL perlu dibuat sebagai rangkaian baru atau varian terpisah dengan penyesuaian:
-
-- `AUTOINCREMENT` menjadi `AUTO_INCREMENT`.
-- Tipe data dan aturan default SQLite disesuaikan dengan MySQL/MariaDB.
-- Trigger tugas baru ditulis ulang dengan sintaks MySQL.
-- Index partial SQLite diganti dengan strategi index yang kompatibel.
-- Placeholder, transaksi, foreign key, dan timestamp diuji ulang.
-- Seeder diuji terhadap database kosong MySQL.
-- Query laporan dan conditional update klaim tugas diuji untuk konkurensi.
-
-Migration SQLite yang sudah ada tidak boleh diedit untuk memaksa kompatibilitas MySQL. Buat migration/adapter MySQL baru agar database development lama tetap dapat direkonstruksi.
+Migration SQLite historis tetap berada di `database/migrations/` dan tidak diedit. Ia hanya digunakan bila `DB_CONNECTION=sqlite` ditetapkan eksplisit untuk pemulihan/kompatibilitas lama.
 
 ## Contoh konfigurasi MySQL lokal dengan XAMPP
 
-Buat database `simit` melalui phpMyAdmin, lalu sesuaikan `.env`:
+Buat database `db_aplikasi` melalui phpMyAdmin dengan collation `utf8mb4_unicode_ci`, lalu sesuaikan `.env`:
 
 ```env
-DB_DRIVER=mysql
+DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_NAME=simit
-DB_USER=root
-DB_PASS=
+DB_DATABASE=db_aplikasi
+DB_USERNAME=root
+DB_PASSWORD=
+DB_CHARSET=utf8mb4
 ```
 
-Nama variabel akhir harus mengikuti implementasi `Database` setelah adapter MySQL dibuat. Jangan menyimpan password produksi di Git.
+Jangan menyimpan `.env` atau password produksi di Git.
 
 Alur lokal setelah adapter dan migration MySQL tersedia:
 
 ```powershell
 # Apache dan MySQL dinyalakan dari XAMPP Control Panel
-php bin/migrate-mysql.php
-php bin/seed.php
+php bin/migrate.php
 ```
 
 Jika memakai Apache XAMPP, arahkan VirtualHost atau document root ke folder `public`, bukan ke root project. Alternatifnya, PHP development server tetap dapat dipakai untuk mengakses database MySQL XAMPP:
@@ -79,7 +62,9 @@ Jika memakai Apache XAMPP, arahkan VirtualHost atau document root ke folder `pub
 php -S localhost:8000 -t public public/router.php
 ```
 
-## Memindahkan data SQLite ke MySQL
+## Prosedur bila data SQLite lain perlu dipindahkan
+
+Migrasi 17 November 2026 hanya memindahkan satu akun Admin karena data operasional sumber kosong. Audit log dan login attempt lama sengaja tidak dipindahkan. Bila di kemudian hari ada salinan SQLite lain yang perlu diimpor, gunakan prosedur berikut:
 
 1. Hentikan perubahan data sementara.
 2. Backup `storage/database/simit.sqlite`, `storage/uploads/`, dan `storage/avatars/`.

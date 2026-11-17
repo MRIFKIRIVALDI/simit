@@ -21,6 +21,7 @@ Perintah pertama tidak boleh menampilkan `.env` atau `.env.*`; `.env.example` ad
 ```powershell
 cd "D:\tugas kuliah\semester 7\simit"
 Copy-Item .env.example .env
+# Pastikan MySQL XAMPP aktif dan database db_aplikasi sudah dibuat.
 php bin/migrate.php
 $env:SIMIT_ADMIN_NAME='Koordinator IT'
 $env:SIMIT_ADMIN_EMAIL='admin@domain-anda.id'
@@ -94,14 +95,9 @@ Smoke test memastikan tabel inti dan akun Admin tersedia. Workflow test memverif
 
 ## Penyimpanan dan backup
 
-Untuk SQLite, backup minimal harus mencakup:
+Database aktif dibackup menggunakan `mysqldump` XAMPP. `bin/prepare-production.php --confirm` membuat dump SQL privat sebelum pembersihan dan tidak boleh dijalankan tanpa backup serta persetujuan. Backup operasional juga harus mencakup `storage/uploads/` dan `storage/avatars/`.
 
-- `storage/database/simit.sqlite`
-- `storage/uploads/`
-- `storage/avatars/`
-- `storage/backups/` bila backup persiapan produksi masih ingin dipertahankan
-
-Hentikan write sementara atau gunakan mekanisme backup SQLite yang konsisten sebelum menyalin database aktif. Uji restore pada staging sebelum produksi.
+SQLite lama di `storage/database/simit.sqlite` dan backup `simit-before-mysql-*.sqlite` dipertahankan sampai restore MariaDB telah diuji. Jangan memasukkan database atau dump ke Git.
 
 ## Deployment
 

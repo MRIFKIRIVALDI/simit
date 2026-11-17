@@ -5,7 +5,8 @@ Aplikasi PHP untuk inventaris lab, software, tugas IT, pemeriksaan, kegiatan, la
 ## Kebutuhan
 
 - PHP 8.2+
-- PDO SQLite (default) atau PDO MySQL
+- PDO MySQL dengan MariaDB/MySQL (`pdo_mysql`)
+- MariaDB XAMPP aktif dan database `db_aplikasi` ber-collation `utf8mb4_unicode_ci`
 
 ## Instalasi lokal
 
@@ -33,7 +34,7 @@ Perintah tersebut membuat backup privat di `storage/backups/` sebelum menghapus 
 
 ## Database
 
-Default menggunakan `storage/database/simit.sqlite`. Untuk MySQL/MariaDB, ubah `DB_DSN`, `DB_USER`, dan `DB_PASS` di `.env`. Migration SQL awal menggunakan sintaks SQLite untuk lingkungan pengembangan; deployment MySQL membutuhkan migration dialect MySQL yang setara.
+Database aktif menggunakan MariaDB/MySQL melalui konfigurasi `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, dan `DB_PASSWORD`. `bin/migrate.php` otomatis memilih migration pada `database/migrations/mysql/`. SQLite lama dipertahankan hanya sebagai arsip sumber/backup dan tidak digunakan oleh runtime aktif.
 
 ## Keamanan
 

@@ -381,6 +381,8 @@ PRD SIMIT v0.3 mencakup nama dan logo yang dipilih pengguna, arahan antarmuka, k
 
 Catatan implementasi keamanan: kredensial Admin tidak didokumentasikan di PRD atau repository. Admin awal dibuat melalui environment menggunakan `bin/create-admin.php`. Mode portfolio menggunakan demo read-only tanpa akun database.
 
+Catatan implementasi database 17 November 2026: runtime SIMIT telah menggunakan MariaDB 10.4.32/InnoDB melalui PDO MySQL. Schema dibuat otomatis melalui migration dialect MariaDB terpisah; SQLite lama dipertahankan sebagai arsip rollback dan tidak menjadi database aktif.
+
 ## 22. Secure delivery dan otorisasi data
 
 - Rahasia dan `.env` tidak boleh masuk repository atau artefak publik.

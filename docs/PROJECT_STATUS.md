@@ -1,5 +1,14 @@
 # Status Pengembangan SIMIT
 
+## Migrasi MariaDB selesai — 17 November 2026
+
+- Database runtime aktif menggunakan MariaDB 10.4.32 XAMPP pada `db_aplikasi` melalui PDO MySQL.
+- Schema MySQL berisi 21 tabel, 29 foreign key, satu trigger notifikasi tugas, dan seluruh tabel memakai InnoDB/utf8mb4.
+- Akun Admin dipindahkan dengan ID dan hash password yang tetap sama; data operasional, audit log, dan login attempt lama tidak dipindahkan.
+- Backup SQLite tervalidasi tersimpan privat di `storage/backups/simit-before-mysql-20261117-143046.sqlite`; SQLite sumber belum dihapus.
+- Query rate-limit, seeder, nomor tugas otomatis, script persiapan produksi, smoke test, dan CI telah disesuaikan untuk MariaDB.
+- Syntax, migration idempotency, login sementara, CRUD, foreign key rejection, cascade, trigger, workflow, chat, keamanan, dan policy test lulus.
+
 ## Pembaruan motion graphic 3 November 2026
 
 - Aset video tersedia di `public/assets/video/motion_graphis_simit.mp4` dan halaman publiknya berada di `/motion`.
@@ -28,7 +37,7 @@
 - `/login` mengarahkan pengguna yang masih login kembali ke Dashboard, sehingga form login tidak dapat muncul di dalam shell aplikasi.
 - Redirect setelah login/logout memakai HTTP 303.
 
-Dokumen ini adalah handoff utama untuk pengembang yang melanjutkan SIMIT. Terakhir diperbarui 2 November 2026.
+Dokumen ini adalah handoff utama untuk pengembang yang melanjutkan SIMIT. Terakhir diperbarui 17 November 2026.
 
 ## 1. Ringkasan
 
@@ -74,7 +83,7 @@ Database aplikasi menjadi sumber operasional. Spreadsheet hanya menjadi referens
 | Dark mode | Selesai | Preferensi disimpan di `localStorage`; ikon bulan/matahari mengikuti mode. |
 | Logo kontras | Selesai | Logo hijau pada permukaan terang dan logo putih pada panel hijau/dark mode. |
 | Import spreadsheet | Belum | Struktur tracking import tersedia, tetapi UI parser/pratinjau belum dibuat. |
-| Adapter MySQL/MariaDB | Belum | Aplikasi aktif masih SQLite; migration MySQL perlu dibuat sebelum deployment kantor. Panduan ada di `docs/DEPLOYMENT_AND_MYSQL.md`. |
+| Adapter MySQL/MariaDB | Selesai | Runtime lokal aktif memakai `db_aplikasi`; dialect MySQL terpisah dan telah diuji pada MariaDB XAMPP. |
 | Ekspor | Belum | Laporan hanya dapat dicetak dari browser. |
 | Verifikasi tugas | Selesai untuk MVP | Tugas pending tersembunyi dari daftar utama, masuk ACC admin, lalu kembali sebagai history setelah disetujui. |
 | Notifikasi | Selesai untuk MVP | Bell menampilkan unread; kartu dapat diklik menuju chat, detail tugas, atau antrean ACC dan otomatis ditandai dibaca. |
@@ -118,7 +127,7 @@ Tugas yang sedang menunggu ACC tidak ditampilkan pada daftar Tugas. Setelah dise
 
 ## 4. Kondisi data aktif
 
-Database aktif telah disiapkan untuk data asli:
+Database MariaDB `db_aplikasi` aktif telah disiapkan untuk data asli:
 
 - satu akun Admin aktif dipertahankan tanpa mengubah profil atau password;
 - seluruh akun non-admin dan data operasional telah dihapus;
@@ -161,7 +170,7 @@ Database aktif telah disiapkan untuk data asli:
 
 ## 7. Keterbatasan penting
 
-- SQL migration saat ini ditulis untuk SQLite. Jangan menganggap migration langsung kompatibel dengan MySQL/MariaDB.
+- Migration SQLite historis dan migration MariaDB sengaja dipisahkan berdasarkan dialect; perubahan schema berikutnya harus dibuat pada dialect yang masih didukung.
 - Aplikasi belum menggunakan framework atau Composer package.
 - Router, controller, dan logika bisnis masih terkonsentrasi di `public/index.php`; perlu dipecah sebelum fitur membesar.
 - Belum ada reset kata sandi mandiri, MFA, atau pemaksaan ganti password awal.

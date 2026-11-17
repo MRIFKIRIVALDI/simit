@@ -19,9 +19,12 @@ final class Auth
         $pdo = Database::connection();
         $email = strtolower(trim($email));
         $ip = substr((string)($_SERVER['REMOTE_ADDR'] ?? 'cli'), 0, 64);
-        $pdo->exec("DELETE FROM login_attempts WHERE created_at < datetime('now','-1 day')");
-        $limit = $pdo->prepare("SELECT SUM(CASE WHEN ip_address=? THEN 1 ELSE 0 END) ip_failures,SUM(CASE WHEN ip_address=? AND email=? THEN 1 ELSE 0 END) pair_failures FROM login_attempts WHERE successful=0 AND created_at >= datetime('now','-15 minutes')");
-        $limit->execute([$ip, $ip, $email]); $failures=$limit->fetch();
+        $dayAgo=date('Y-m-d H:i:s',time()-86400);
+        $windowStart=date('Y-m-d H:i:s',time()-900);
+        $cleanup=$pdo->prepare('DELETE FROM login_attempts WHERE created_at < ?');
+        $cleanup->execute([$dayAgo]);
+        $limit = $pdo->prepare('SELECT SUM(CASE WHEN ip_address=? THEN 1 ELSE 0 END) ip_failures,SUM(CASE WHEN ip_address=? AND email=? THEN 1 ELSE 0 END) pair_failures FROM login_attempts WHERE successful=0 AND created_at >= ?');
+        $limit->execute([$ip, $ip, $email, $windowStart]); $failures=$limit->fetch();
         if ((int)($failures['ip_failures']??0) >= 30 || (int)($failures['pair_failures']??0) >= 8) return false;
         $stmt = $pdo->prepare('SELECT * FROM users WHERE lower(email)=? AND is_active=1');
         $stmt->execute([$email]); $user = $stmt->fetch();

@@ -1,5 +1,14 @@
 # Changelog
 
+## SQLite to MariaDB migration — 2026-11-17
+
+- Mengaktifkan MariaDB 10.4.32 XAMPP sebagai database runtime melalui konfigurasi PDO MySQL standar.
+- Menambahkan dialect migration MariaDB terpisah untuk 21 tabel, 29 foreign key, indeks, check constraint, dan trigger notifikasi tunggal.
+- Memindahkan satu akun Admin aktif dengan ID serta hash password tetap sama; data operasional dan log sementara tidak dipindahkan.
+- Mengganti fungsi tanggal SQLite, penomoran tugas berbasis `GLOB`, dan `INSERT OR IGNORE` dengan implementasi lintas-driver/MariaDB.
+- Menambahkan dukungan backup `mysqldump`, smoke test lintas-driver, dan CI MariaDB.
+- Mempertahankan SQLite sumber serta backup tervalidasi untuk rollback; tidak ada UI atau fitur yang dihapus.
+
 ## Clickable logo & motion graphic — 2026-11-03
 
 - Memindahkan `motion_graphis_simit.mp4` ke aset publik `public/assets/video/` agar dapat dilayani langsung oleh web server.

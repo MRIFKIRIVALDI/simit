@@ -58,7 +58,7 @@ Landing page memakai data presentasi statis dan tidak membaca data operasional. 
 
 ### `Simit\Core\Database`
 
-Membuat singleton PDO dari `DB_DSN`. SQLite mengaktifkan foreign key melalui `PRAGMA foreign_keys = ON`.
+Membuat singleton PDO MySQL dari `DB_CONNECTION`, host, port, database, username, password, dan charset. Runtime aktif memakai MariaDB/MySQL; dukungan SQLite eksplisit tetap tersedia hanya untuk arsip/pemulihan database lama.
 
 ### `Simit\Core\Auth`
 
@@ -116,6 +116,8 @@ Merender view ke buffer, kemudian memasukkannya ke layout aplikasi. `renderDemo(
 - `011_security_hardening.sql`: pencatatan percobaan login dan indeks jendela rate limit.
 
 Detail deployment SQLite, XAMPP, dan rencana adapter MySQL/MariaDB tersedia di `docs/DEPLOYMENT_AND_MYSQL.md`.
+
+Migration MariaDB aktif berada di `database/migrations/mysql/001_schema.sql` dan `002_notify_new_task.sql`. Runner memilih folder ini ketika `DB_CONNECTION=mysql`; migration SQLite historis tidak diubah.
 
 Migration yang sudah diterapkan tidak boleh diedit. Buat file bernomor baru untuk perubahan skema berikutnya.
 

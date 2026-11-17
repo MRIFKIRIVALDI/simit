@@ -36,13 +36,4 @@ $rejected=false;
 try{Sql::identifier('id DESC; DROP TABLE users',['id']);}catch(InvalidArgumentException){$rejected=true;}
 $assert($rejected,'Unsafe SQL identifier was accepted.');
 
-$vacuumPath=tempnam(sys_get_temp_dir(),'simit-vacuum-');
-if($vacuumPath===false){fwrite(STDERR,"Could not allocate VACUUM test path.\n");exit(1);}
-unlink($vacuumPath);
-$memory=new PDO('sqlite::memory:');
-$vacuum=$memory->prepare('VACUUM INTO ?');
-$vacuum->execute([$vacuumPath]);
-$assert(is_file($vacuumPath),'SQLite VACUUM filename binding failed.');
-unlink($vacuumPath);
-
 echo "Policy and SQL identifier tests passed.\n";

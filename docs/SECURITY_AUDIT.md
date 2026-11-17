@@ -4,6 +4,7 @@ Audit awal: 23 Oktober 2026
 Pemeriksaan lanjutan: 2 November 2026
 Pemeriksaan navigasi session: 3 November 2026
 Pemeriksaan secure coding dan ownership: 3 November 2026
+Pemeriksaan migrasi MariaDB: 17 November 2026
 
 ## Temuan dan perbaikan
 
@@ -26,6 +27,7 @@ Pemeriksaan secure coding dan ownership: 3 November 2026
 | IDOR/ownership | Endpoint berbasis ID dapat membaca atau memutasi record yang tidak terkait pengguna. | Policy terpusat ditambahkan untuk tugas, lampiran, modul, akun, dan profil; existence check menghasilkan hidden 404 pada data privat. |
 | SQL injection | Value input atau nama kolom sorting dapat menjadi SQL mentah. | Value input memakai binding. Tabel/kolom/direction dinamis hanya berasal dari exact allowlist melalui `Simit\Core\Sql`. |
 | Kode mati | View/helper lama dan blok mustahil menambah permukaan pemeliharaan. | Blok `if(false)`, helper legacy duplikat, dan empat view yang tidak lagi dirutekan telah dihapus. |
+| Migrasi database | Perbedaan dialect, trigger ganda, atau foreign key yang hilang dapat merusak kontrol data. | Runtime dipindahkan ke MariaDB dengan dialect migration terpisah, 29 foreign key terverifikasi, satu trigger notifikasi, InnoDB/utf8mb4, backup SQLite tervalidasi, dan pengujian CRUD/login/cascade. |
 
 ## Kontrol yang sudah ada
 
