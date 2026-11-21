@@ -21,6 +21,23 @@ Buka `http://localhost:8000`.
 
 Service **MySQL** XAMPP wajib aktif untuk aplikasi lokal. Apache bersifat opsional bila aplikasi dijalankan melalui PHP development server; bila memakai Apache, document root harus diarahkan ke folder `public`.
 
+## Troubleshooting MariaDB error 1130 setelah crash
+
+Pada 21 November 2026, MariaDB lokal mengalami crash recovery lalu menolak SIMIT dan phpMyAdmin dengan pesan `Host 'localhost' is not allowed to connect to this MariaDB server`. Pemeriksaan memastikan port 3306 tetap aktif dan `db_aplikasi` masih utuh, tetapi tabel sistem `mysql.global_priv` korup (error halaman Aria 176 dan CRC tidak valid).
+
+Pemulihan dilakukan secara aman dengan urutan berikut:
+
+1. MariaDB dihentikan sepenuhnya.
+2. Seluruh `C:\xampp\mysql\data` disalin dan diverifikasi sebelum perbaikan.
+3. MariaDB dijalankan sementara dengan `--skip-grant-tables`.
+4. `mysql.global_priv` diperbaiki menggunakan `REPAIR TABLE ... EXTENDED`.
+5. Empat akun lokal bawaan yang tidak dapat diselamatkan dibuat ulang: `root@localhost`, `root@127.0.0.1`, `root@::1`, dan `pma@localhost`.
+6. Server dinyalakan kembali dalam mode normal, lalu seluruh database diperiksa menggunakan `mysqlcheck`.
+
+Backup sebelum perbaikan tersimpan privat di `storage/backups/mysql-data-before-grant-repair-20261121-1045/`. Jangan masukkan folder tersebut ke Git. Jika error yang sama berulang, jangan mengganti `DB_HOST`, menghapus `db_aplikasi`, menyalin `xampp/mysql/backup` langsung ke folder data, atau memasang ulang XAMPP sebelum membuat backup dan memeriksa `mysql.global_priv`.
+
+Setelah pemulihan, 21 tabel SIMIT, akun Admin, migration, koneksi phpMyAdmin, serta seluruh test aplikasi terverifikasi kembali.
+
 ## Rekomendasi untuk implementasi kerja
 
 SQLite cocok untuk development, demo, dan tim kecil dengan aktivitas tulis rendah. Untuk penggunaan kantor dengan banyak akun yang mengubah inventaris, tugas, chat, dan laporan, gunakan MySQL/MariaDB atau PostgreSQL pada server terkelola/VPS.

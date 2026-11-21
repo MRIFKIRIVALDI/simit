@@ -1,5 +1,12 @@
 # Changelog
 
+## MariaDB local grant recovery — 2026-11-21
+
+- Memulihkan tabel sistem `mysql.global_priv` yang korup setelah crash recovery XAMPP tanpa menghapus atau membuat ulang `db_aplikasi`.
+- Membuat backup raw data MariaDB yang terverifikasi sebelum repair dan memulihkan empat akun lokal XAMPP (`root`/`pma`).
+- Memverifikasi seluruh database dengan `mysqlcheck`, 21 tabel SIMIT, Admin aktif, migration, koneksi phpMyAdmin, dan seluruh test aplikasi.
+- Menambahkan runbook error MariaDB 1130 ke dokumentasi deployment.
+
 ## SQLite to MariaDB migration — 2026-11-17
 
 - Mengaktifkan MariaDB 10.4.32 XAMPP sebagai database runtime melalui konfigurasi PDO MySQL standar.
